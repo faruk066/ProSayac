@@ -1,0 +1,7 @@
+R_DEF: Internal format may change without notice
+local
+mipmap ic_launcher
+mipmap ic_launcher_round
+style Theme.ProSayac
+xml device_filter
+xml file_paths
