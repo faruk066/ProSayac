@@ -64,6 +64,10 @@ class MeterRepositoryImpl @Inject constructor(
         return meterDao.insertMeters(meters.map { it.toEntity() })
     }
 
+    override suspend fun importMetersAtomic(newMeters: List<Meter>) {
+        meterDao.importAllAtomic(newMeters.map { it.toEntity() })
+    }
+
     override suspend fun updateMeter(meter: Meter) {
         meterDao.updateMeter(meter.toEntity())
     }

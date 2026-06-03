@@ -20,6 +20,7 @@ interface MeterRepository {
     suspend fun getMeterById(id: Long): Meter?
     suspend fun insertMeter(meter: Meter): Long
     suspend fun insertMeters(meters: List<Meter>): List<Long>
+    suspend fun importMetersAtomic(newMeters: List<Meter>)
     suspend fun updateMeter(meter: Meter)
     suspend fun updateMeterReading(id: Long, status: String, reading: String, readingDate: Long)
     suspend fun markAsSynced(ids: List<Long>)

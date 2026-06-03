@@ -15,6 +15,7 @@ import com.prosayac.app.util.serial.MBusProtocolHandler
 import com.prosayac.app.util.serial.MBusSerialManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -63,6 +64,9 @@ class MetersViewModel @Inject constructor(
     val uiState: StateFlow<MetersUiState> = _uiState.asStateFlow()
 
     private val excelParser = ExcelParser()
+
+    /** Track the active reading Job so it can be cancelled on demand. */
+    private var readingJob: Job? = null
 
     init {
         loadMeters()
@@ -121,12 +125,10 @@ class MetersViewModel @Inject constructor(
                 val result = excelParser.parse(context, uri, buildingName)
                 _uiState.value = _uiState.value.copy(importProgress = "Veriler kaydediliyor...")
 
-                // Clear existing meters before import - a new Excel is a fresh start
-                meterRepository.deleteAll()
-
-                if (result.meters.isNotEmpty()) {
-                    meterRepository.insertMeters(result.meters)
-                }
+                // Atomic import: delete + insert in a single transaction
+                // If anything fails, Room rolls back, preserving old data
+                LoggerService.log(LogTag.INFO, "Atomik içe aktarma başlatılıyor (${result.meters.size} sayaç)")
+                meterRepository.importMetersAtomic(result.meters)
 
                 _uiState.value = _uiState.value.copy(
                     isImporting = false,
@@ -178,7 +180,9 @@ class MetersViewModel @Inject constructor(
      *  5. If timeout, mark as "Cihaz Yanıt Vermedi"
      */
     fun startReading() {
-        viewModelScope.launch {
+        // Cancel any previous reading job before starting a new one
+        readingJob?.cancel()
+        readingJob = viewModelScope.launch {
             LoggerService.log(LogTag.INFO, "======= HARDWARE OKUMA BAŞLATILDI =======")
 
             // Check connection state
@@ -296,9 +300,11 @@ class MetersViewModel @Inject constructor(
      */
     fun cancelReading() {
         LoggerService.log(LogTag.WARN, "Okuma kullanıcı tarafından iptal edildi")
+        readingJob?.cancel()
+        readingJob = null
         _uiState.value = _uiState.value.copy(
             isReadingInProgress = false,
-            readingProgressMessage = "Okuma iptal edildi",
+            readingProgressMessage = "İptal Edildi",
             meterReadStatuses = emptyMap(),
             meterReadingValues = emptyMap()
         )

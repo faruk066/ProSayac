@@ -40,6 +40,19 @@ interface MeterDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMeters(meters: List<MeterEntity>): List<Long>
 
+    /**
+     * Atomic import: deletes all existing meters and inserts the new list
+     * within a single database transaction. If any step fails, the entire
+     * operation is rolled back, preserving old data integrity.
+     */
+    @Transaction
+    suspend fun importAllAtomic(newMeters: List<MeterEntity>) {
+        deleteAll()
+        if (newMeters.isNotEmpty()) {
+            insertMeters(newMeters)
+        }
+    }
+
     @Update
     suspend fun updateMeter(meter: MeterEntity)
 
