@@ -68,7 +68,7 @@ object MBusProtocolHandler {
         // Secondary address: BCD-encoded serial number padded to 8 bytes
         val serialBytes = serialNumberToBcdBytes(serialNumber)
         for (b in serialBytes) {
-            out.write(b)
+            out.write(b.toInt())
         }
 
         // Checksum: sum of C + A + CI + secondary_addr bytes, mod 256
