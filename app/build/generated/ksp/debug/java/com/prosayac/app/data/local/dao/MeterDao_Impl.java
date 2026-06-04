@@ -8,6 +8,7 @@ import androidx.room.CoroutinesRoom;
 import androidx.room.EntityDeletionOrUpdateAdapter;
 import androidx.room.EntityInsertionAdapter;
 import androidx.room.RoomDatabase;
+import androidx.room.RoomDatabaseKt;
 import androidx.room.RoomSQLiteQuery;
 import androidx.room.SharedSQLiteStatement;
 import androidx.room.util.CursorUtil;
@@ -219,6 +220,12 @@ public final class MeterDao_Impl implements MeterDao {
         }
       }
     }, $completion);
+  }
+
+  @Override
+  public Object importAllAtomic(final List<MeterEntity> newMeters,
+      final Continuation<? super Unit> $completion) {
+    return RoomDatabaseKt.withTransaction(__db, (__cont) -> MeterDao.DefaultImpls.importAllAtomic(MeterDao_Impl.this, newMeters, __cont), $completion);
   }
 
   @Override

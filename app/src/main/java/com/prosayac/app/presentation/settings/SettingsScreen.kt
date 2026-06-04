@@ -1,5 +1,6 @@
 package com.prosayac.app.presentation.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,7 +21,6 @@ import com.prosayac.app.presentation.theme.*
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    onThemeChanged: (String) -> Unit,
     onMenuClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
@@ -125,7 +125,6 @@ fun SettingsScreen(
                         ) {
                             RadioButton(selected = state.themeMode == value, onClick = {
                                 viewModel.updateThemeMode(value)
-                                onThemeChanged(value)
                                 showThemeDialog = false
                             })
                             Spacer(modifier = Modifier.width(8.dp))
@@ -174,11 +173,14 @@ fun SettingsScreen(
             confirmButton = {
                 TextButton(onClick = { showResetDialog = false }) { Text("İptal") }
             },
-            dismissButton = {
-                TextButton(onClick = { showResetDialog = false /* TODO: call reset data */ }) {
-                    Text("Tümünü Sil", color = ProMaxError)
-                }
-            }
+dismissButton = {
+                        TextButton(onClick = { 
+                            viewModel.deleteAllData()
+                            showResetDialog = false 
+                        }) {
+                            Text("Tümünü Sil", color = ProMaxError)
+                        }
+                    }
         )
     }
 }
@@ -203,7 +205,9 @@ fun GenelTab(
                 headlineContent = { Text("Tema") },
                 supportingContent = { Text(when (themeMode) { "light" -> "Açık" ; "dark" -> "Koyu" ; else -> "Sistem" }) },
                 leadingContent = { Icon(Icons.Default.Palette, null, tint = ProMaxTertiary) },
-                modifier = Modifier.padding(0.dp)
+                modifier = Modifier
+                    .padding(0.dp)
+                    .clickable { onThemeClick() }
             )
             Divider(color = MaterialTheme.colorScheme.outlineVariant)
             ListItem(

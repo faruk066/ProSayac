@@ -6,9 +6,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * Log categories for color-coded terminal display.
- */
 enum class LogTag(val displayName: String) {
     INFO("INFO"),
     WARN("WARN"),
@@ -17,9 +14,6 @@ enum class LogTag(val displayName: String) {
     PARSER("PARSER")
 }
 
-/**
- * Individual log entry stored in the ring buffer.
- */
 data class LogEntry(
     val timestamp: Long,
     val tag: LogTag,
@@ -35,32 +29,13 @@ data class LogEntry(
         get() = "[$formattedTime] [${tag.displayName}] $message"
 }
 
-/**
- * Singleton LoggerService - Black Box (Kara Kutu) for ProSayac.
- *
- * Intercepts:
- *  - Hardware HEX data (incoming/outgoing)
- *  - Parser events (Template detected, Row processing status)
- *  - Exceptions (try-catch logs from all layers)
- *  - General info/warn messages
- *
- * Thread-safe, observable via StateFlow.
- * MAX_ENTRIES limit prevents unbounded memory growth.
- */
 object LoggerService {
 
-    /** Maximum log entries in the ring buffer */
     private const val MAX_ENTRIES = 10_000
 
     private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
     val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
 
-    /**
-     * Records a log entry at the given tag level.
-     *
-     * @param tag The log category (INFO, WARN, ERROR, HARDWARE, PARSER)
-     * @param message The log message
-     */
     fun log(tag: LogTag, message: String) {
         val entry = LogEntry(
             timestamp = System.currentTimeMillis(),
@@ -72,30 +47,21 @@ object LoggerService {
             val current = _logs.value.toMutableList()
             current.add(entry)
 
-            // Trim to MAX_ENTRIES (ring buffer behavior)
             if (current.size > MAX_ENTRIES) {
                 val overflow = current.size - MAX_ENTRIES
-                for (i in 0 until overflow) {
-                    current.removeAt(0)
-                }
+                repeat(overflow) { current.removeAt(0) }
             }
 
             _logs.value = current
         }
     }
 
-    /**
-     * Clears all log entries from the buffer.
-     */
     fun clearAll() {
-        _logs.value = emptyList()
+        synchronized(this) {
+            _logs.value = emptyList()
+        }
     }
 
-    /**
-     * Exports all current log entries as a formatted text string.
-     *
-     * @return Complete log text with header, suitable for file export
-     */
     fun exportAsText(): String {
         val entries = _logs.value
         if (entries.isEmpty()) return "Sistem Günlükleri - Boş\n"

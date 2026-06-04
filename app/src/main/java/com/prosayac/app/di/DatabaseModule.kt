@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.prosayac.app.data.local.database.AppDatabase
 import com.prosayac.app.data.local.dao.MeterDao
 import com.prosayac.app.data.local.dao.ReadingDao
+import com.prosayac.app.util.serial.MBusSerialManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -38,5 +39,11 @@ object DatabaseModule {
     @Singleton
     fun provideReadingDao(database: AppDatabase): ReadingDao {
         return database.readingDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSerialManager(@ApplicationContext context: Context): MBusSerialManager {
+        return MBusSerialManager(context)
     }
 }

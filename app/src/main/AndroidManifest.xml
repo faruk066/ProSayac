@@ -6,10 +6,7 @@
     <uses-feature android:name="android.hardware.usb.host"
         android:required="false" />
 
-    <!-- Permissions -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
-        android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
+    <!-- Storage Access Framework handles document access - no raw storage perms needed -->
 
     <!-- Internet for future sync -->
     <uses-permission android:name="android.permission.INTERNET" />

@@ -5,8 +5,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.ListAlt
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PowerSettingsNew
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Speed
+import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Usb
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -16,12 +24,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.prosayac.app.data.datastore.UserPreferences
 import com.prosayac.app.presentation.components.GlowingStatusIndicator
 import com.prosayac.app.presentation.connection.ConnectionScreen
 import com.prosayac.app.presentation.connection.ConnectionViewModel
@@ -42,6 +52,7 @@ import com.prosayac.app.util.serial.ConnectionState
 import com.prosayac.app.util.serial.MBusSerialManager
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -50,12 +61,17 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var serialManager: MBusSerialManager
 
+    @Inject
+    lateinit var userPreferences: UserPreferences
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
         setContent {
-            var themeMode by remember { mutableStateOf("system") }
+            val themeMode by userPreferences.preferencesFlow
+                .map { it.themeMode }
+                .collectAsStateWithLifecycle("system")
 
             val darkTheme = when (themeMode) {
                 "light" -> false
@@ -64,9 +80,7 @@ class MainActivity : ComponentActivity() {
             }
 
             ProMaxTheme(darkTheme = darkTheme) {
-                ProSayacMainApp(
-                    onThemeChanged = { mode -> themeMode = mode }
-                )
+                ProSayacMainApp()
             }
         }
     }
@@ -80,7 +94,6 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProSayacMainApp(
-    onThemeChanged: (String) -> Unit
 ) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -267,7 +280,6 @@ fun ProSayacMainApp(
             composable(NavRoute.Settings.route) {
                 SettingsScreen(
                     viewModel = settingsViewModel,
-                    onThemeChanged = onThemeChanged,
                     onMenuClick = { scope.launch { drawerState.open() } }
                 )
             }

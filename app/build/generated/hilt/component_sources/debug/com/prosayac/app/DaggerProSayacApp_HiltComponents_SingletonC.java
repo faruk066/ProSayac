@@ -14,6 +14,7 @@ import com.prosayac.app.data.repository.MeterRepositoryImpl;
 import com.prosayac.app.di.DatabaseModule_ProvideAppDatabaseFactory;
 import com.prosayac.app.di.DatabaseModule_ProvideMeterDaoFactory;
 import com.prosayac.app.di.DatabaseModule_ProvideReadingDaoFactory;
+import com.prosayac.app.di.DatabaseModule_ProvideSerialManagerFactory;
 import com.prosayac.app.presentation.MainActivity;
 import com.prosayac.app.presentation.MainActivity_MembersInjector;
 import com.prosayac.app.presentation.connection.ConnectionViewModel;
@@ -406,7 +407,8 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
     }
 
     private MainActivity injectMainActivity2(MainActivity instance) {
-      MainActivity_MembersInjector.injectSerialManager(instance, singletonCImpl.mBusSerialManagerProvider.get());
+      MainActivity_MembersInjector.injectSerialManager(instance, singletonCImpl.provideSerialManagerProvider.get());
+      MainActivity_MembersInjector.injectUserPreferences(instance, singletonCImpl.userPreferencesProvider.get());
       return instance;
     }
   }
@@ -483,7 +485,7 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
       public T get() {
         switch (id) {
           case 0: // com.prosayac.app.presentation.connection.ConnectionViewModel 
-          return (T) new ConnectionViewModel(singletonCImpl.mBusSerialManagerProvider.get());
+          return (T) new ConnectionViewModel(singletonCImpl.provideSerialManagerProvider.get());
 
           case 1: // com.prosayac.app.presentation.dashboard.DashboardViewModel 
           return (T) new DashboardViewModel(singletonCImpl.meterRepositoryImplProvider.get());
@@ -492,13 +494,13 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
           return (T) new LogsViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 3: // com.prosayac.app.presentation.meters.MetersViewModel 
-          return (T) new MetersViewModel(singletonCImpl.meterRepositoryImplProvider.get(), singletonCImpl.mBusSerialManagerProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+          return (T) new MetersViewModel(singletonCImpl.meterRepositoryImplProvider.get(), singletonCImpl.provideSerialManagerProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 4: // com.prosayac.app.presentation.readings.ReadingsViewModel 
           return (T) new ReadingsViewModel(singletonCImpl.meterRepositoryImplProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           case 5: // com.prosayac.app.presentation.settings.SettingsViewModel 
-          return (T) new SettingsViewModel(singletonCImpl.userPreferencesProvider.get());
+          return (T) new SettingsViewModel(singletonCImpl.userPreferencesProvider.get(), singletonCImpl.meterRepositoryImplProvider.get());
 
           default: throw new AssertionError(id);
         }
@@ -580,7 +582,9 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
 
     private final SingletonCImpl singletonCImpl = this;
 
-    private Provider<MBusSerialManager> mBusSerialManagerProvider;
+    private Provider<MBusSerialManager> provideSerialManagerProvider;
+
+    private Provider<UserPreferences> userPreferencesProvider;
 
     private Provider<AppDatabase> provideAppDatabaseProvider;
 
@@ -590,8 +594,6 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
 
     private Provider<MeterRepositoryImpl> meterRepositoryImplProvider;
 
-    private Provider<UserPreferences> userPreferencesProvider;
-
     private SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
       initialize(applicationContextModuleParam);
@@ -600,12 +602,12 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
 
     @SuppressWarnings("unchecked")
     private void initialize(final ApplicationContextModule applicationContextModuleParam) {
-      this.mBusSerialManagerProvider = DoubleCheck.provider(new SwitchingProvider<MBusSerialManager>(singletonCImpl, 0));
-      this.provideAppDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<AppDatabase>(singletonCImpl, 3));
-      this.provideMeterDaoProvider = DoubleCheck.provider(new SwitchingProvider<MeterDao>(singletonCImpl, 2));
-      this.provideReadingDaoProvider = DoubleCheck.provider(new SwitchingProvider<ReadingDao>(singletonCImpl, 4));
-      this.meterRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<MeterRepositoryImpl>(singletonCImpl, 1));
-      this.userPreferencesProvider = DoubleCheck.provider(new SwitchingProvider<UserPreferences>(singletonCImpl, 5));
+      this.provideSerialManagerProvider = DoubleCheck.provider(new SwitchingProvider<MBusSerialManager>(singletonCImpl, 0));
+      this.userPreferencesProvider = DoubleCheck.provider(new SwitchingProvider<UserPreferences>(singletonCImpl, 1));
+      this.provideAppDatabaseProvider = DoubleCheck.provider(new SwitchingProvider<AppDatabase>(singletonCImpl, 4));
+      this.provideMeterDaoProvider = DoubleCheck.provider(new SwitchingProvider<MeterDao>(singletonCImpl, 3));
+      this.provideReadingDaoProvider = DoubleCheck.provider(new SwitchingProvider<ReadingDao>(singletonCImpl, 5));
+      this.meterRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<MeterRepositoryImpl>(singletonCImpl, 2));
     }
 
     @Override
@@ -642,22 +644,22 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
       public T get() {
         switch (id) {
           case 0: // com.prosayac.app.util.serial.MBusSerialManager 
-          return (T) new MBusSerialManager(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+          return (T) DatabaseModule_ProvideSerialManagerFactory.provideSerialManager(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
-          case 1: // com.prosayac.app.data.repository.MeterRepositoryImpl 
+          case 1: // com.prosayac.app.data.datastore.UserPreferences 
+          return (T) new UserPreferences(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+
+          case 2: // com.prosayac.app.data.repository.MeterRepositoryImpl 
           return (T) new MeterRepositoryImpl(singletonCImpl.provideMeterDaoProvider.get(), singletonCImpl.provideReadingDaoProvider.get());
 
-          case 2: // com.prosayac.app.data.local.dao.MeterDao 
+          case 3: // com.prosayac.app.data.local.dao.MeterDao 
           return (T) DatabaseModule_ProvideMeterDaoFactory.provideMeterDao(singletonCImpl.provideAppDatabaseProvider.get());
 
-          case 3: // com.prosayac.app.data.local.database.AppDatabase 
+          case 4: // com.prosayac.app.data.local.database.AppDatabase 
           return (T) DatabaseModule_ProvideAppDatabaseFactory.provideAppDatabase(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
-          case 4: // com.prosayac.app.data.local.dao.ReadingDao 
+          case 5: // com.prosayac.app.data.local.dao.ReadingDao 
           return (T) DatabaseModule_ProvideReadingDaoFactory.provideReadingDao(singletonCImpl.provideAppDatabaseProvider.get());
-
-          case 5: // com.prosayac.app.data.datastore.UserPreferences 
-          return (T) new UserPreferences(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);
         }

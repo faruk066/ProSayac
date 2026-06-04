@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.prosayac.app-mergeDebugResources-64:/values-lv/values-lv.xml",
+            "outputFile": "com.prosayac.app-mergeDebugResources-65:/values-lv/values-lv.xml",
             "map": [
                 {
                     "source": "C:\\Users\\UnknownBoy\\.gradle\\caches\\transforms-3\\c3794f3c2b053a4873389fe5dff16550\\transformed\\material3-release\\res\\values-lv\\values-lv.xml",

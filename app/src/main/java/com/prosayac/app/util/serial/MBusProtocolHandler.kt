@@ -78,7 +78,7 @@ object MBusProtocolHandler {
         for (b in serialBytes) {
             checksum = (checksum + b) and 0xFF
         }
-        out.write(checksum)
+        out.write(checksum and 0xFF)
 
         // Stop byte
         out.write(0x16)
@@ -258,21 +258,28 @@ object MBusProtocolHandler {
             )
 
             if (!checksumOk) {
-                LoggerService.log(LogTag.WARN, "Rsp_UD checksum hatası - veri yine de işlenecek")
+                LoggerService.log(LogTag.WARN, "Rsp_UD checksum hatası - geçersiz çerçeve reddediliyor")
+                // Reject corrupted frame entirely - return no reading value
+                return ResponseResult(
+                    isValid = false,
+                    readingValue = null,
+                    rawHex = hex,
+                    errorMessage = "Checksum hatası - veri bozuk"
+                )
             }
 
             // Extract reading value from data blocks
             val reading = extractReadingFromData(dataBytes)
             LoggerService.log(
                 LogTag.INFO,
-                "Rsp_UD parse edildi: endeks=$reading, checksum=${if (checksumOk) "OK" else "FAIL"}"
+                "Rsp_UD parse edildi: endeks=$reading"
             )
 
             return ResponseResult(
-                isValid = checksumOk,
+                isValid = true,
                 readingValue = reading,
                 rawHex = hex,
-                errorMessage = if (checksumOk) null else "Checksum hatası"
+                errorMessage = if (reading == null) "Veri bloğu içinde sayaç değeri bulunamadı" else null
             )
         } catch (e: Exception) {
             LoggerService.log(LogTag.ERROR, "Rsp_UD parse hatası: ${e.message}")
@@ -346,18 +353,8 @@ object MBusProtocolHandler {
             val dif = data[i].toInt() and 0xFF
             i++
 
-            if (dif == 0x0F || dif == 0x1F || dif == 0x2F) {
-                // DIFE byte, skip and continue
-                val difType = (dif shr 6) and 0x03
-                if (difType > 0) {
-                    // Has data after DIFE
-                    continue
-                }
-                continue
-            }
-
             if (dif == 0x2F || dif == 0x3F || dif == 0x4F || dif == 0x5F || dif == 0x6F || dif == 0x7F) {
-                continue // DIFE only, no data
+                continue
             }
 
             if (i >= data.size) break
@@ -365,71 +362,64 @@ object MBusProtocolHandler {
             val vif = data[i].toInt() and 0xFF
             i++
 
-            // VIFE handling
             if (vif == 0xFD || vif == 0xFB) {
                 if (i < data.size) {
                     val vife = data[i].toInt() and 0xFF
                     i++
-                    LoggerService.log(LogTag.HARDWARE, "VIFE tespit edildi: ${"%02X".format(vife)}")
                 }
-                continue // Skip VIFE for now, try next block
+                continue
             }
 
             val dataBytes: Int = when ((dif shr 6) and 0x03) {
-                0 -> 0    // no data
-                1 -> 1    // 8 bit integer
-                2 -> 2    // 16 bit integer
-                3 -> 3    // 24 bit integer
-                4 -> 4    // 32 bit integer
-                5 -> { // 32 bit N (sometimes 4 bytes + 1)
+                1 -> 1
+                2 -> 2
+                3 -> 3
+                4 -> 4
+                5 -> {
                     i++
                     4
                 }
-                6 -> 8    // 48 bit integer (6 bytes, padded to 8)
-                7 -> 8    // 64 bit integer
+                6 -> 8
+                7 -> 8
                 else -> 0
             }
 
             if (dataBytes == 0 || i + dataBytes > data.size) continue
 
-            // Read multi-byte value (LSB first)
+            val vifType = vif and 0x7F
+            val isDataVif = vifType in 0x00..0x07 || vifType in 0x08..0x0F ||
+                    vifType in 0x10..0x1F || vifType in 0x30..0x3F
+            if (!isDataVif) {
+                i += dataBytes
+                continue
+            }
+
             var value: Long = 0
             for (b in 0 until dataBytes) {
                 value = value or ((data[i + b].toLong() and 0xFF) shl (b * 8))
             }
             i += dataBytes
 
-            // VIF decoding for multiplier
-            val vifType = vif and 0x7F
+            if (value == 0L) continue
+
             val multiplier = when {
-                vifType in 0x00..0x07 -> Math.pow(10.0, (vifType - 3).toDouble()).toLong() // Energy Wh -> kWh
-                vifType in 0x08..0x0F -> Math.pow(10.0, (vifType - 3).toDouble()).toLong() // Energy J -> kJ
-                vifType in 0x10..0x17 -> Math.pow(10.0, (vifType - 6).toDouble()).toLong() // Volume m3
-                vifType in 0x18..0x1F -> Math.pow(10.0, (vifType - 6).toDouble()).toLong() // Volume m3
-                vifType in 0x20..0x27 -> Math.pow(10.0, (vifType - 6).toDouble()).toLong() // Volume m3/min
-                vifType in 0x28..0x2F -> Math.pow(10.0, (vifType - 6).toDouble()).toLong() // Volume m3/h
-                vifType in 0x30..0x37 -> Math.pow(10.0, (vifType - 3).toDouble()).toLong() // Power W
-                vifType in 0x38..0x3F -> Math.pow(10.0, (vifType - 3).toDouble()).toLong() // Power J/h
+                vifType in 0x00..0x07 -> Math.pow(10.0, (vifType - 3).toDouble()).toLong()
+                vifType in 0x08..0x0F -> Math.pow(10.0, (vifType - 3).toDouble()).toLong()
+                vifType in 0x10..0x1F -> Math.pow(10.0, (vifType - 6).toDouble()).toLong()
+                vifType in 0x30..0x3F -> Math.pow(10.0, (vifType - 3).toDouble()).toLong()
                 else -> 1
             }
 
-            if (value > 0) {
-                val finalValue = value * multiplier
-                val displayValue = if (multiplier == 1L) {
-                    value.toString()
-                } else {
-                    String.format("%.0f", value.toDouble() * multiplier)
-                }
-
-                LoggerService.log(
-                    LogTag.INFO,
-                    "Endeks çıkarıldı: ham=$value, çarpan=$multiplier, sonuç=$displayValue"
-                )
-                return displayValue
+            val finalValue = value * multiplier
+            val displayValue = if (multiplier == 1L) {
+                value.toString()
+            } else {
+                String.format("%.0f", value.toDouble() * multiplier)
             }
+
+            return displayValue
         }
 
-        LoggerService.log(LogTag.WARN, "Veri bloklarından endeks çıkarılamadı")
         return null
     }
 

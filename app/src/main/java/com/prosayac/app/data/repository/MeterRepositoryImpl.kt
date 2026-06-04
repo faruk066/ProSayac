@@ -73,6 +73,7 @@ class MeterRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateMeterReading(id: Long, status: String, reading: String, readingDate: Long) {
+        require(status.isNotBlank()) { "Meter status boş olamaz" }
         meterDao.updateMeterReading(id, status, reading, readingDate)
     }
 

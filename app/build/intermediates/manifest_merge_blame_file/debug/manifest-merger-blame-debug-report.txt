@@ -16,199 +16,191 @@
 14        android:required="false" />
 14-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:7:9-33
 15
-16    <!-- Permissions -->
-17    <uses-permission
-17-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:10:5-11:38
-18        android:name="android.permission.READ_EXTERNAL_STORAGE"
-18-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:10:22-77
-19        android:maxSdkVersion="32" />
-19-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:11:9-35
-20    <uses-permission android:name="android.permission.READ_MEDIA_DOCUMENTS" />
-20-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:5-79
-20-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:22-76
-21
-22    <!-- Internet for future sync -->
-23    <uses-permission android:name="android.permission.INTERNET" />
-23-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:15:5-67
-23-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:15:22-64
-24    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-24-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:16:5-79
-24-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:16:22-76
-25
-26    <permission
-26-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
-27        android:name="com.prosayac.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
-27-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
-28        android:protectionLevel="signature" />
-28-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
-29
-30    <uses-permission android:name="com.prosayac.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
-30-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
-30-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
-31
-32    <application
-32-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:18:5-59:19
-33        android:name="com.prosayac.app.ProSayacApp"
-33-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:19:9-36
-34        android:allowBackup="true"
-34-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:20:9-35
-35        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
-35-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
-36        android:debuggable="true"
-37        android:extractNativeLibs="false"
-38        android:icon="@mipmap/ic_launcher"
-38-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:21:9-43
-39        android:label="Sayaç Pro"
-39-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:22:9-34
-40        android:roundIcon="@mipmap/ic_launcher_round"
-40-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:23:9-54
-41        android:supportsRtl="true"
-41-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:24:9-35
-42        android:theme="@style/Theme.ProSayac" >
-42-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:25:9-46
-43        <activity
-43-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:28:9-46:20
-44            android:name="com.prosayac.app.presentation.MainActivity"
-44-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:29:13-54
-45            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
-45-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:31:13-87
-46            android:exported="true"
-46-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:30:13-36
-47            android:theme="@style/Theme.ProSayac" >
-47-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:32:13-50
-48            <intent-filter>
-48-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:33:13-36:29
-49                <action android:name="android.intent.action.MAIN" />
-49-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:34:17-69
-49-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:34:25-66
+16    <!-- Storage Access Framework handles document access - no raw storage perms needed -->
+17
+18
+19    <!-- Internet for future sync -->
+20    <uses-permission android:name="android.permission.INTERNET" />
+20-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:5-67
+20-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:22-64
+21    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+21-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:13:5-79
+21-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:13:22-76
+22
+23    <permission
+23-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:22:5-24:47
+24        android:name="com.prosayac.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+24-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:23:9-81
+25        android:protectionLevel="signature" />
+25-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:24:9-44
+26
+27    <uses-permission android:name="com.prosayac.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+27-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:26:5-97
+27-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:26:22-94
+28
+29    <application
+29-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:15:5-56:19
+30        android:name="com.prosayac.app.ProSayacApp"
+30-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:16:9-36
+31        android:allowBackup="true"
+31-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:17:9-35
+32        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+32-->[androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
+33        android:debuggable="true"
+34        android:extractNativeLibs="false"
+35        android:icon="@mipmap/ic_launcher"
+35-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:18:9-43
+36        android:label="Sayaç Pro"
+36-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:19:9-34
+37        android:roundIcon="@mipmap/ic_launcher_round"
+37-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:20:9-54
+38        android:supportsRtl="true"
+38-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:21:9-35
+39        android:theme="@style/Theme.ProSayac" >
+39-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:22:9-46
+40        <activity
+40-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:25:9-43:20
+41            android:name="com.prosayac.app.presentation.MainActivity"
+41-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:26:13-54
+42            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+42-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:28:13-87
+43            android:exported="true"
+43-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:27:13-36
+44            android:theme="@style/Theme.ProSayac" >
+44-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:29:13-50
+45            <intent-filter>
+45-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:30:13-33:29
+46                <action android:name="android.intent.action.MAIN" />
+46-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:31:17-69
+46-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:31:25-66
+47
+48                <category android:name="android.intent.category.LAUNCHER" />
+48-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:32:17-77
+48-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:32:27-74
+49            </intent-filter>
 50
-51                <category android:name="android.intent.category.LAUNCHER" />
-51-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:35:17-77
-51-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:35:27-74
-52            </intent-filter>
-53
-54            <!-- USB device attachment filter -->
-55            <intent-filter>
-55-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:39:13-41:29
-56                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
-56-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:40:17-90
-56-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:40:25-87
-57            </intent-filter>
-58
-59            <meta-data
-59-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:43:13-45:57
-60                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
-60-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:44:17-79
-61                android:resource="@xml/device_filter" />
-61-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:45:17-54
-62        </activity>
-63
-64        <!-- Provider for FileProvider (Excel export attachment) -->
-65        <provider
-66            android:name="androidx.core.content.FileProvider"
-66-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:50:13-62
-67            android:authorities="com.prosayac.app.fileprovider"
-67-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:51:13-64
-68            android:exported="false"
-68-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:52:13-37
-69            android:grantUriPermissions="true" >
-69-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:53:13-47
-70            <meta-data
-70-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:54:13-56:54
-71                android:name="android.support.FILE_PROVIDER_PATHS"
-71-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:55:17-67
-72                android:resource="@xml/file_paths" />
-72-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:56:17-51
-73        </provider>
-74
-75        <activity
-75-->[androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
-76            android:name="androidx.compose.ui.tooling.PreviewActivity"
-76-->[androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
-77            android:exported="true" />
-77-->[androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
-78
-79        <provider
-79-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
-80            android:name="androidx.startup.InitializationProvider"
-80-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
-81            android:authorities="com.prosayac.app.androidx-startup"
-81-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
-82            android:exported="false" >
-82-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+51            <!-- USB device attachment filter -->
+52            <intent-filter>
+52-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:36:13-38:29
+53                <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+53-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:37:17-90
+53-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:37:25-87
+54            </intent-filter>
+55
+56            <meta-data
+56-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:40:13-42:57
+57                android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+57-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:41:17-79
+58                android:resource="@xml/device_filter" />
+58-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:42:17-54
+59        </activity>
+60
+61        <!-- Provider for FileProvider (Excel export attachment) -->
+62        <provider
+63            android:name="androidx.core.content.FileProvider"
+63-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:47:13-62
+64            android:authorities="com.prosayac.app.fileprovider"
+64-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:48:13-64
+65            android:exported="false"
+65-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:49:13-37
+66            android:grantUriPermissions="true" >
+66-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:50:13-47
+67            <meta-data
+67-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:51:13-53:54
+68                android:name="android.support.FILE_PROVIDER_PATHS"
+68-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:52:17-67
+69                android:resource="@xml/file_paths" />
+69-->C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:53:17-51
+70        </provider>
+71
+72        <activity
+72-->[androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+73            android:name="androidx.compose.ui.tooling.PreviewActivity"
+73-->[androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+74            android:exported="true" />
+74-->[androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+75
+76        <provider
+76-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+77            android:name="androidx.startup.InitializationProvider"
+77-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+78            android:authorities="com.prosayac.app.androidx-startup"
+78-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+79            android:exported="false" >
+79-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+80            <meta-data
+80-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+81                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+81-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+82                android:value="androidx.startup" />
+82-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
 83            <meta-data
-83-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
-84                android:name="androidx.emoji2.text.EmojiCompatInitializer"
-84-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+83-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\fe4b9b4dd215a4f324c26eb10f2060ba\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
+84                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+84-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\fe4b9b4dd215a4f324c26eb10f2060ba\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
 85                android:value="androidx.startup" />
-85-->[androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+85-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\fe4b9b4dd215a4f324c26eb10f2060ba\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
 86            <meta-data
-86-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\fe4b9b4dd215a4f324c26eb10f2060ba\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:29:13-31:52
-87                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
-87-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\fe4b9b4dd215a4f324c26eb10f2060ba\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:30:17-78
+86-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+87                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+87-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
 88                android:value="androidx.startup" />
-88-->[androidx.lifecycle:lifecycle-process:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\fe4b9b4dd215a4f324c26eb10f2060ba\transformed\lifecycle-process-2.7.0\AndroidManifest.xml:31:17-49
-89            <meta-data
-89-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
-90                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
-90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
-91                android:value="androidx.startup" />
-91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
-92        </provider>
-93
-94        <activity
-94-->[androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e0be2ba0d67a18de607c282e8eb99c8\transformed\ui-test-manifest-1.6.1\AndroidManifest.xml:23:9-25:39
-95            android:name="androidx.activity.ComponentActivity"
-95-->[androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e0be2ba0d67a18de607c282e8eb99c8\transformed\ui-test-manifest-1.6.1\AndroidManifest.xml:24:13-63
-96            android:exported="true" />
-96-->[androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e0be2ba0d67a18de607c282e8eb99c8\transformed\ui-test-manifest-1.6.1\AndroidManifest.xml:25:13-36
-97
-98        <service
-98-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
-99            android:name="androidx.room.MultiInstanceInvalidationService"
-99-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
-100            android:directBootAware="true"
-100-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
-101            android:exported="false" />
-101-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
-102
-103        <receiver
-103-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
-104            android:name="androidx.profileinstaller.ProfileInstallReceiver"
-104-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
-105            android:directBootAware="false"
-105-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
-106            android:enabled="true"
-106-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
-107            android:exported="true"
-107-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
-108            android:permission="android.permission.DUMP" >
-108-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+88-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+89        </provider>
+90
+91        <activity
+91-->[androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e0be2ba0d67a18de607c282e8eb99c8\transformed\ui-test-manifest-1.6.1\AndroidManifest.xml:23:9-25:39
+92            android:name="androidx.activity.ComponentActivity"
+92-->[androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e0be2ba0d67a18de607c282e8eb99c8\transformed\ui-test-manifest-1.6.1\AndroidManifest.xml:24:13-63
+93            android:exported="true" />
+93-->[androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e0be2ba0d67a18de607c282e8eb99c8\transformed\ui-test-manifest-1.6.1\AndroidManifest.xml:25:13-36
+94
+95        <service
+95-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
+96            android:name="androidx.room.MultiInstanceInvalidationService"
+96-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
+97            android:directBootAware="true"
+97-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
+98            android:exported="false" />
+98-->[androidx.room:room-runtime:2.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\9afd3b13fd8ecf8bc8c85330be511881\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
+99
+100        <receiver
+100-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+101            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+101-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+102            android:directBootAware="false"
+102-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+103            android:enabled="true"
+103-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+104            android:exported="true"
+104-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+105            android:permission="android.permission.DUMP" >
+105-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+106            <intent-filter>
+106-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+107                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+107-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+108            </intent-filter>
 109            <intent-filter>
-109-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
-110                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
-110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
-110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+109-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+110                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+110-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
 111            </intent-filter>
 112            <intent-filter>
-112-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
-113                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
-113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
-113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+112-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+113                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+113-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
 114            </intent-filter>
 115            <intent-filter>
-115-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
-116                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
-116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
-116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+115-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+116                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+116-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
 117            </intent-filter>
-118            <intent-filter>
-118-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
-119                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
-119-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
-119-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a8f17309a0781995a158fded301f2aa1\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
-120            </intent-filter>
-121        </receiver>
-122    </application>
-123
-124</manifest>
+118        </receiver>
+119    </application>
+120
+121</manifest>

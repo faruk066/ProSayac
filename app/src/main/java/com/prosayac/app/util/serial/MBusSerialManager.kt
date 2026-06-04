@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
+import androidx.core.content.ContextCompat
 import com.hoho.android.usbserial.driver.UsbSerialDriver
 import com.hoho.android.usbserial.driver.UsbSerialPort
 import com.hoho.android.usbserial.driver.UsbSerialProber
@@ -23,20 +24,6 @@ import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
-
-enum class ConnectionState {
-    DISCONNECTED,
-    CONNECTING,
-    CONNECTED,
-    ERROR
-}
-
-data class SerialConfig(
-    val baudRate: Int = 9600,
-    val dataBits: Int = 8,
-    val stopBits: Int = 1,
-    val parity: Int = 0
-)
 
 @Singleton
 class MBusSerialManager @Inject constructor(
@@ -55,16 +42,54 @@ class MBusSerialManager @Inject constructor(
     val receivedData = _receivedData
 
     private var permissionIntent: PendingIntent? = null
+    internal var cleanupCalled = false
+    private var receiverRegistered = false
 
-    /** Raw byte accumulator for hardware response polling */
     private val rawBuffer = mutableListOf<Byte>()
-
-    /** Callback for suspend-based response waiting (meter polling) */
     private var rawResponseCallback: ((ByteArray) -> Unit)? = null
+
+    private var usbReceiver: BroadcastReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent == null) return
+            when (intent.action) {
+                ACTION_USB_PERMISSION -> {
+                    synchronized(this) {
+                        val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+                        val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+                        if (device != null) { onPermissionGranted(device, granted) }
+                    }
+                }
+                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
+                    val device: UsbDevice? = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+                    if (device != null && serialPort?.driver?.device?.deviceId == device.deviceId) { disconnect() }
+                    refreshConnectionState()
+                }
+                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                    refreshConnectionState()
+                }
+            }
+        }
+    }
 
     init {
         setupPermissionIntent()
         registerUsbReceiver()
+    }
+
+    fun cleanup() {
+        if (cleanupCalled) return
+        cleanupCalled = true
+        try {
+            ioManager?.stop()
+            ioManager = null
+            serialPort?.close()
+            serialPort = null
+            _connectionState.value = ConnectionState.DISCONNECTED
+            try { context.unregisterReceiver(usbReceiver) } catch (_: Exception) {}
+            receiverRegistered = false
+            LoggerService.log(LogTag.INFO, "M-Bus yöneticisi temizlendi")
+        } catch (e: Exception) {
+        }
     }
 
     private fun setupPermissionIntent() {
@@ -79,12 +104,22 @@ class MBusSerialManager @Inject constructor(
     }
 
     private fun registerUsbReceiver() {
+        if (receiverRegistered) {
+            LoggerService.log(LogTag.WARN, "USB alıcısı zaten kayıtlı, tekrar kayıt engellendi")
+            return
+        }
         val filter = IntentFilter().apply {
             addAction(ACTION_USB_PERMISSION)
             addAction(UsbManager.ACTION_USB_DEVICE_DETACHED)
             addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED)
         }
-        context.registerReceiver(usbReceiver, filter)
+        ContextCompat.registerReceiver(
+            context,
+            usbReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+        receiverRegistered = true
     }
 
     fun connect(config: SerialConfig = SerialConfig()) {
@@ -187,15 +222,8 @@ class MBusSerialManager @Inject constructor(
         }
     }
 
-    /**
-     * Suspends until raw bytes are received from the serial port.
-     * Used by the meter polling pipeline to wait for Rsp_UD frames.
-     *
-     * @return The raw ByteArray received from M-Bus hardware
-     */
     suspend fun waitForRawResponse(): ByteArray = suspendCancellableCoroutine { cont ->
         synchronized(rawBuffer) {
-            // If there's already data in the buffer, return it immediately
             if (rawBuffer.isNotEmpty()) {
                 val data = rawBuffer.toByteArray()
                 rawBuffer.clear()
@@ -204,7 +232,6 @@ class MBusSerialManager @Inject constructor(
                 return@suspendCancellableCoroutine
             }
 
-            // Register callback - will be invoked from onNewData
             rawResponseCallback = { data ->
                 cont.resume(data)
             }
@@ -251,21 +278,17 @@ class MBusSerialManager @Inject constructor(
     private fun startIoManager(port: UsbSerialPort) {
         ioManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
             override fun onNewData(data: ByteArray) {
-                // Log raw hex data for diagnostics
                 val hex = data.joinToString(" ") { "%02X".format(it) }
                 LoggerService.log(LogTag.HARDWARE, "ALINAN ← $hex (${data.size} byte)")
 
-                // Forward to Channel (legacy path)
                 _receivedData.trySend(String(data, Charsets.UTF_8))
 
-                // Forward to raw buffer for polling path
                 synchronized(rawBuffer) {
                     val callback = rawResponseCallback
                     if (callback != null) {
                         rawResponseCallback = null
                         callback(data)
                     } else {
-                        // Accumulate for next poll request
                         rawBuffer.addAll(data.toList())
                     }
                 }
@@ -281,54 +304,6 @@ class MBusSerialManager @Inject constructor(
         } catch (e: Exception) {
             LoggerService.log(LogTag.ERROR, "IO yönetici başlatma hatası: ${e.message}")
             _connectionState.value = ConnectionState.ERROR
-        }
-    }
-
-    fun cleanup() {
-        try {
-            ioManager?.stop()
-            ioManager = null
-            serialPort?.close()
-            serialPort = null
-            _connectionState.value = ConnectionState.DISCONNECTED
-            context.unregisterReceiver(usbReceiver)
-            LoggerService.log(LogTag.INFO, "M-Bus yöneticisi temizlendi")
-        } catch (e: Exception) {
-            // Already unregistered or cleaned up
-        }
-    }
-
-    private val usbReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            if (intent == null) return
-
-            when (intent.action) {
-                ACTION_USB_PERMISSION -> {
-                    synchronized(this) {
-                        val device: UsbDevice? =
-                            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
-                        val granted = intent.getBooleanExtra(
-                            UsbManager.EXTRA_PERMISSION_GRANTED, false
-                        )
-                        if (device != null) {
-                            onPermissionGranted(device, granted)
-                        }
-                    }
-                }
-                UsbManager.ACTION_USB_DEVICE_DETACHED -> {
-                    val device: UsbDevice? =
-                        intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
-                    if (device != null && serialPort?.driver?.device?.deviceId == device.deviceId) {
-                        LoggerService.log(LogTag.WARN, "USB cihaz çıkarıldı")
-                        disconnect()
-                    }
-                    refreshConnectionState()
-                }
-                UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
-                    LoggerService.log(LogTag.HARDWARE, "USB cihaz takıldı")
-                    refreshConnectionState()
-                }
-            }
         }
     }
 

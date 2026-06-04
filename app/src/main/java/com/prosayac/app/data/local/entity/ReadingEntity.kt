@@ -5,6 +5,7 @@ import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.prosayac.app.data.local.entity.MeterEntity
 
 @Entity(
     tableName = "readings",

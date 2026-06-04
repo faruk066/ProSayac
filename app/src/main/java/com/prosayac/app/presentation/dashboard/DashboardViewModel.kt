@@ -8,6 +8,7 @@ import com.prosayac.app.data.local.dao.TypeStats
 import com.prosayac.app.domain.model.DashboardStats
 import com.prosayac.app.domain.repository.MeterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -22,6 +23,8 @@ data class DashboardUiState(
     val readingProgress: Float = 0f,
     val syncProgress: Float = 0f,
     val isLoading: Boolean = true,
+    val isChartError: Boolean = false,
+    val chartErrorMessage: String? = null,
 
     // Chart data
     val barChartLabels: List<String> = emptyList(),
@@ -66,106 +69,102 @@ class DashboardViewModel @Inject constructor(
                     val progress = if (total > 0) read.toFloat() / total else 0f
                     val syncP = if (total > 0) (total - unsynced).toFloat() / total else 0f
 
-                    _uiState.value = _uiState.value.copy(
-                        totalMeters = total,
-                        readMeters = read,
-                        unreadMeters = unread,
-                        unsyncedMeters = unsynced,
-                        totalReadings = readingsCount,
-                        readingProgress = progress,
-                        syncProgress = syncP
-                    )
-                }.catch { e ->
-                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    _uiState.update { currentState ->
+                        currentState.copy(
+                            totalMeters = total,
+                            readMeters = read,
+                            unreadMeters = unread,
+                            unsyncedMeters = unsynced,
+                            totalReadings = readingsCount,
+                            readingProgress = progress,
+                            syncProgress = syncP
+                        )
+                    }
                 }.collect()
             }
 
+            // Wait briefly for combined counts to emit initial values, then load chart data
+            delay(100)
+            
             // Load chart data (suspend functions)
             loadChartData()
 
-            _uiState.value = _uiState.value.copy(isLoading = false)
+            _uiState.update { it.copy(isLoading = false) }
         }
     }
 
     private suspend fun loadChartData() {
         try {
-            val cal = Calendar.getInstance()
-            val sevenDaysAgo = cal.apply { add(Calendar.DAY_OF_YEAR, -7) }.timeInMillis
-            cal.add(Calendar.DAY_OF_YEAR, 7) // Reset to today
+            val calendar = Calendar.getInstance()
+            val sevenDaysAgo = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, -7)
+            }
 
             // 1. Bar chart: Daily reading stats (last 7 days)
-            val dailyStats = meterRepository.getDailyReadingStats(sevenDaysAgo)
-            if (dailyStats.isNotEmpty()) {
-                val labels = mutableListOf<String>()
-                val values = mutableListOf<Float>()
-                for (stat in dailyStats) {
-                    val shortLabel = stat.day.takeLast(5) // "MM-DD"
-                    labels.add(shortLabel)
-                    values.add(stat.count.toFloat())
-                }
-                _uiState.value = _uiState.value.copy(
-                    barChartLabels = labels,
-                    barChartValues = values
-                )
+            val dailyStats = meterRepository.getDailyReadingStats(sevenDaysAgo.timeInMillis)
+            val barLabels = if (dailyStats.isNotEmpty()) {
+                dailyStats.map { it.day.takeLast(5) }
             } else {
-                // Mock data for empty state
-                _uiState.value = _uiState.value.copy(
-                    barChartLabels = listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz"),
-                    barChartValues = listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f)
-                )
+                listOf("Pzt", "Sal", "Çar", "Per", "Cum", "Cmt", "Paz")
+            }
+            val barValues = if (dailyStats.isNotEmpty()) {
+                dailyStats.map { it.count.toFloat() }
+            } else {
+                listOf(0f, 0f, 0f, 0f, 0f, 0f, 0f)
             }
 
             // 2. Donut chart: Reading type distribution (Sync status)
             // Actually show: Senkronize / Bekleyen distribution
-            val total = _uiState.value.totalMeters
-            val unsynced = _uiState.value.unsyncedMeters
+            val currentState = _uiState.value
+            val total = currentState.totalMeters
+            val unsynced = currentState.unsyncedMeters
             val synced = total - unsynced
 
-            _uiState.value = _uiState.value.copy(
-                donutSegments = listOf(
-                    DonutSegmentUi(
-                        label = "Senkronize (${synced})",
-                        value = synced.toFloat(),
-                        color = 0xFF16A34A // Green
-                    ),
-                    DonutSegmentUi(
-                        label = "Bekleyen (${unsynced})",
-                        value = (unsynced.toFloat()).coerceAtLeast(0f),
-                        color = 0xFFF97316 // Orange
+            _uiState.update {
+                it.copy(
+                    barChartLabels = barLabels,
+                    barChartValues = barValues,
+                    donutSegments = listOf(
+                        DonutSegmentUi(
+                            label = "Senkronize (${synced})",
+                            value = synced.toFloat(),
+                            color = 0xFF16A34A // Green
+                        ),
+                        DonutSegmentUi(
+                            label = "Bekleyen (${unsynced})",
+                            value = (unsynced.toFloat()).coerceAtLeast(0f),
+                            color = 0xFFF97316 // Orange
+                        )
                     )
                 )
-            )
+            }
 
             // 3. Line chart: Monthly reading trend
             val monthlyStats = meterRepository.getMonthlyReadingTrend()
-            if (monthlyStats.isNotEmpty()) {
-                val labels = mutableListOf<String>()
-                val values = mutableListOf<Float>()
-                for (stat in monthlyStats) {
-                    val shortLabel = stat.month.takeLast(2) + ". Ay" // "01. Ay"
-                    labels.add(shortLabel)
-                    values.add(stat.count.toFloat())
-                }
-                _uiState.value = _uiState.value.copy(
-                    lineChartLabels = labels,
-                    lineChartValues = values
-                )
+            val lineLabels = if (monthlyStats.isNotEmpty()) {
+                monthlyStats.map { "${it.month.takeLast(2)}. Ay" }
             } else {
-                val cal2 = Calendar.getInstance()
-                val months = listOf("Oca", "Şub", "Mar", "Nis", "May", "Haz")
-                _uiState.value = _uiState.value.copy(
-                    lineChartLabels = months,
-                    lineChartValues = listOf(0f, 0f, 0f, 0f, 0f, 0f)
+                listOf("Oca", "Şub", "Mar", "Nis", "May", "Haz")
+            }
+            val lineValues = if (monthlyStats.isNotEmpty()) {
+                monthlyStats.map { it.count.toFloat() }
+            } else {
+                listOf(0f, 0f, 0f, 0f, 0f, 0f)
+            }
+
+            _uiState.update {
+                it.copy(
+                    lineChartLabels = lineLabels,
+                    lineChartValues = lineValues
                 )
             }
         } catch (e: Exception) {
-            // Silently fall back to empty charts
-            _uiState.value = _uiState.value.copy(
-                barChartLabels = listOf("Veri Yok"),
-                barChartValues = listOf(0f),
-                lineChartLabels = listOf("Veri Yok"),
-                lineChartValues = listOf(0f)
-            )
+            _uiState.update {
+                it.copy(
+                    isChartError = true,
+                    chartErrorMessage = e.message ?: "Grafik verileri yüklenemedi"
+                )
+            }
         }
     }
 }

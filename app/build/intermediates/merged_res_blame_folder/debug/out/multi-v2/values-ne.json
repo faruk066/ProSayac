@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.prosayac.app-mergeDebugResources-64:/values-ne/values-ne.xml",
+            "outputFile": "com.prosayac.app-mergeDebugResources-65:/values-ne/values-ne.xml",
             "map": [
                 {
                     "source": "C:\\Users\\UnknownBoy\\.gradle\\caches\\transforms-3\\52e2c1568cb4a415a7096b3a70e3832f\\transformed\\ui-release\\res\\values-ne\\values-ne.xml",

@@ -20,7 +20,8 @@ data class ExcelParseResult(
     val meters: List<Meter>,
     val errors: List<ExcelParseError>,
     val totalRows: Int,
-    val successCount: Int
+    val successCount: Int,
+    val ambiguousFormats: List<ExcelFormat> = emptyList()
 )
 
 data class ExcelParseError(
@@ -32,7 +33,7 @@ data class ExcelParseError(
 // FORMAT ENUM
 // =============================================================================
 
-private enum class ExcelFormat {
+enum class ExcelFormat {
     TELEGRAM,   // "SAYAÇ NO" + "SAYAÇ TİPİ"
     POLIMETER,  // "id2" + "tip"
     STANDARD    // "ISI SAYACI" + "SICAK SU"
@@ -54,7 +55,7 @@ private const val TYPE_CODE_WATER = 6
 
 class ExcelParser {
 
-    fun parse(context: Context, uri: Uri, buildingName: String): ExcelParseResult {
+    fun parse(context: Context, uri: Uri, buildingName: String, forceFormat: ExcelFormat? = null): ExcelParseResult {
         val errors = mutableListOf<ExcelParseError>()
         LoggerService.log(LogTag.PARSER, "Excel parse başlatıldı: bina=\"$buildingName\"")
 
@@ -76,11 +77,9 @@ class ExcelParser {
                     return ExcelParseResult(emptyList(), errors, 0, 0)
                 }
 
-                // ---- 1. DETECT FORMAT ----
-                val format = detectFormat(headerRow)
+                val matchingFormats = detectFormats(headerRow)
 
-                if (format == null) {
-                    // Build a helpful message showing what headers we found
+                if (matchingFormats.isEmpty()) {
                     val foundHeaders = (0 until headerRow.physicalNumberOfCells)
                         .mapNotNull { i ->
                             val c = headerRow.getCell(i)
@@ -100,16 +99,26 @@ class ExcelParser {
                     return ExcelParseResult(emptyList(), errors, 0, 0)
                 }
 
+                if (matchingFormats.size > 1) {
+                    LoggerService.log(LogTag.WARN, "Birden fazla format uyustu: ${matchingFormats.joinToString { it.name }}")
+                    return ExcelParseResult(
+                        emptyList(),
+                        errors,
+                        0,
+                        0,
+                        ambiguousFormats = matchingFormats
+                    )
+                }
+
+                val format = matchingFormats.first()
                 LoggerService.log(LogTag.PARSER, "Format algılandı: $format, parse başlıyor...")
 
-                // ---- 2. PARSE ACCORDING TO FORMAT ----
                 val result = when (format) {
                     ExcelFormat.TELEGRAM -> parseTelegram(sheet, headerRow, errors, buildingName)
                     ExcelFormat.POLIMETER -> parsePolimeter(sheet, headerRow, errors, buildingName)
                     ExcelFormat.STANDARD -> parseStandard(sheet, headerRow, errors, buildingName)
                 }
 
-                workbook.close()
                 LoggerService.log(
                     LogTag.INFO,
                     "Excel parse tamamlandı: ${result.successCount} başarılı, " +
@@ -138,50 +147,68 @@ class ExcelParser {
     // =========================================================================
 
     /**
-     * Scans the header row (case‑insensitive, whitespace‑trimmed) to identify
-     * exactly one of the three supported templates.
+     * Normalizes Turkish characters for robust header matching.
+     * "SAYAÇ" and "SAYAC" both normalize to "SAYAC".
      */
-    private fun detectFormat(headerRow: Row): ExcelFormat? {
+    private fun normalizeHeader(s: String): String {
+        return s.uppercase()
+            .replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O")
+            .replace("Ş", "S").replace("Ü", "U")
+            .replace("ç", "C").replace("ğ", "G").replace("ı", "I").replace("ö", "O")
+            .replace("ş", "S").replace("ü", "U")
+    }
+
+    /**
+     * Scans the header row (case‑insensitive, whitespace‑trimmed) to identify all
+     * supported templates that match. Returns an empty list only when none match.
+     */
+    internal fun detectFormats(headerRow: Row): List<ExcelFormat> {
         val headers = (0 until headerRow.physicalNumberOfCells)
             .mapNotNull { i ->
                 val c = headerRow.getCell(i) ?: return@mapNotNull null
-                safeGetCellRaw(c)?.trim()?.uppercase()?.takeIf { it.isNotBlank() }
+                normalizeHeader(safeGetCellRaw(c)?.trim() ?: return@mapNotNull null)
+                    .takeIf { it.isNotBlank() }
             }
             .toSet()
 
-        // Telegram check: "SAYAÇ NO" AND "SAYAÇ TİPİ"
-        val hasSayacNo = headers.any { it == "SAYAÇ NO" || it == "SAYAC NO" }
-        val hasSayacTipi = headers.any { it == "SAYAÇ TİPİ" || it == "SAYAC TIPI" || it == "SAYAÇ TIPI" || it == "SAYAC TİPİ" }
+        val matches = mutableListOf<ExcelFormat>()
+
+        val hasSayacNo = headers.any { 
+            it == "SAYAÇ NO" || it == "SAYAC NO" || it.contains("SAYAC") && it.contains("NO") 
+        }
+        val hasSayacTipi = headers.any { 
+            it == "SAYAÇ TİPİ" || it == "SAYAC TIPI" || it == "SAYAC TİPİ" || it.contains("SAYAC") && it.contains("TIP") 
+        }
         if (hasSayacNo && hasSayacTipi) {
-            return ExcelFormat.TELEGRAM
+            matches.add(ExcelFormat.TELEGRAM)
         }
 
-        // Polimeter check: "id2" AND "tip"
-        val hasId2 = headers.any { it.equals("ID2", ignoreCase = true) }
-        val hasTip = headers.any { it.equals("TIP", ignoreCase = true) || it.equals("TİP", ignoreCase = true) }
+        val hasId2 = headers.any { it == "ID2" }
+        val hasTip = headers.any { it == "TIP" || it == "TİP" }
         if (hasId2 && hasTip) {
-            return ExcelFormat.POLIMETER
+            matches.add(ExcelFormat.POLIMETER)
         }
 
-        // Standard check: "ISI SAYACI" AND "SICAK SU"
         val hasIsiSayaci = headers.any {
             it == "ISI SAYACI" ||
-            it == "ISI SAYAC" ||
-            it == "ISI_S" ||  // Possible abbreviation
-            it.contains("ISI") && it.contains("SAYACI")
+                    it == "ISI SAYAC" ||
+                    it == "ISI_S" ||
+                    it.contains("ISI") && it.contains("SAYACI")
         }
         val hasSicakSu = headers.any {
             it == "SICAK SU" ||
-            it == "SICAKSU" ||
-            it.contains("SICAK") && it.contains("SU")
+                    it == "SICAKSU" ||
+                    it.contains("SICAK") && it.contains("SU")
         }
         if (hasIsiSayaci && hasSicakSu) {
-            return ExcelFormat.STANDARD
+            matches.add(ExcelFormat.STANDARD)
         }
 
-        return null
+        return matches
     }
 
+    // =========================================================================
+    // TELEGRAM FORMAT PARSER
     // =========================================================================
     // TELEGRAM FORMAT PARSER
     // =========================================================================
@@ -192,7 +219,7 @@ class ExcelParser {
      *   Serial = "SAYAÇ NO"
      *   Type   = "SAYAÇ TİPİ"   (4 = Isı Sayacı, 6 = Sıcak Su Sayacı)
      */
-    private fun parseTelegram(
+    internal fun parseTelegram(
         sheet: org.apache.poi.ss.usermodel.Sheet,
         headerRow: Row,
         errors: MutableList<ExcelParseError>,
@@ -279,7 +306,7 @@ class ExcelParser {
      *   Serial = "id2"
      *   Type   = "tip" or "TİP"   (4 = Isı Sayacı, 6 = Sıcak Su Sayacı)
      */
-    private fun parsePolimeter(
+    internal fun parsePolimeter(
         sheet: org.apache.poi.ss.usermodel.Sheet,
         headerRow: Row,
         errors: MutableList<ExcelParseError>,
@@ -367,7 +394,7 @@ class ExcelParser {
      *
      * No type codes. One row can yield TWO Meter objects.
      */
-    private fun parseStandard(
+    internal fun parseStandard(
         sheet: org.apache.poi.ss.usermodel.Sheet,
         headerRow: Row,
         errors: MutableList<ExcelParseError>,

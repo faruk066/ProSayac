@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.prosayac.app.domain.model.Meter
 import com.prosayac.app.presentation.components.SyncStatusBadge
 import com.prosayac.app.presentation.theme.*
+import com.prosayac.app.util.excel.ExcelFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -268,6 +269,15 @@ fun MetersScreen(
         )
     }
 
+    // Ambiguous format dialog
+    if (state.pendingFormatChoiceUri != null && state.pendingFormatOptions.isNotEmpty()) {
+        FormatSelectionDialog(
+            options = state.pendingFormatOptions,
+            onSelected = { viewModel.onFormatPicked(it) },
+            onDismiss = { viewModel.dismissFormatChoice() }
+        )
+    }
+
     // Import result dialog
     if (state.showImportResult && state.importResult != null) {
         val result = state.importResult!!
@@ -364,6 +374,43 @@ fun BuildingNameDialog(
                 Text("İptal")
             }
         }
+    )
+}
+
+// =============================================================================
+// FORMAT SELECTION DIALOG
+// =============================================================================
+@Composable
+fun FormatSelectionDialog(
+    options: List<ExcelFormat>,
+    onSelected: (ExcelFormat) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Hangi formatı kullanıyorsun?", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Başlık satırı birden fazla formata uyuyor. Lütfen doğru formatı seçin:", style = MaterialTheme.typography.bodyMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                options.forEach { option ->
+                    val label = when (option) {
+                        ExcelFormat.TELEGRAM -> "Telegram"
+                        ExcelFormat.POLIMETER -> "Polimeter"
+                        ExcelFormat.STANDARD -> "Standart"
+                    }
+                    OutlinedButton(
+                        onClick = { onSelected(option) },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ProMaxTertiary)
+                    ) {
+                        Text(label, fontFamily = FontFamily.Monospace)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = { TextButton(onClick = onDismiss) { Text("İptal") } }
     )
 }
 

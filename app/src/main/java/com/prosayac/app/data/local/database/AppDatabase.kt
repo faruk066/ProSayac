@@ -9,8 +9,8 @@ import com.prosayac.app.data.local.entity.ReadingEntity
 
 @Database(
     entities = [MeterEntity::class, ReadingEntity::class],
-    version = 3,
-    exportSchema = false
+    version = 4,
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun meterDao(): MeterDao

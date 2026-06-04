@@ -1,20 +1,20 @@
 -- Merging decision tree log ---
 provider#androidx.core.content.FileProvider
-INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:49:9-57:20
+INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:46:9-54:20
 	android:grantUriPermissions
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:53:13-47
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:50:13-47
 	android:authorities
 		INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:51:13-64
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:48:13-64
 	android:exported
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:52:13-37
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:49:13-37
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:50:13-62
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:47:13-62
 manifest
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-61:12
-INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-61:12
-INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-61:12
-INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-61:12
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-58:12
+INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-58:12
+INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-58:12
+INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:2:1-58:12
 MERGED from [com.patrykandpatrick.vico:compose-m3:1.13.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\88977dfd29e282ce9a972638a7ddbe16\transformed\compose-m3-1.13.1\AndroidManifest.xml:2:1-7:12
 MERGED from [com.patrykandpatrick.vico:compose:1.13.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\281e08d90394c2a7a97df9a7cf655e1a\transformed\compose-1.13.1\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.hilt:hilt-navigation-compose:1.1.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\c72ae9a83cef2c2d12a711af08ff2963\transformed\hilt-navigation-compose-1.1.0\AndroidManifest.xml:2:1-7:12
@@ -62,10 +62,11 @@ MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0] C:\Users\UnknownB
 MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e3a51dabdfbfc1a972ec112ad608ebf\transformed\lifecycle-viewmodel-savedstate-2.7.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a37d90e3f97016565faf7ccea1c4d1d5\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7440320f35650731f9dfa9fd7db896fb\transformed\savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3bb784a663844b35d4a32a9429e44b4a\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\1d64d62a42a4fd1edb855ceff9441c6f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3ef3515e7619caf4111dcf5e95b169cf\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\34f0694449a1c09b7c00953559bd9432\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:17:1-22:12
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3bb784a663844b35d4a32a9429e44b4a\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\4908caf3ca35cd5406d0d18a8cbbe853\transformed\lifecycle-runtime-compose-2.7.0\AndroidManifest.xml:2:1-7:12
 MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\17d2a3bc9e977035358b7f51d5fe7778\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:17:1-23:12
 MERGED from [androidx.compose.ui:ui-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\52e2c1568cb4a415a7096b3a70e3832f\transformed\ui-release\AndroidManifest.xml:2:1-7:12
 MERGED from [androidx.compose.ui:ui-test-manifest:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3e0be2ba0d67a18de607c282e8eb99c8\transformed\ui-test-manifest-1.6.1\AndroidManifest.xml:17:1-28:12
@@ -115,27 +116,17 @@ ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidM
 		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:7:9-33
 	android:name
 		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:6:19-59
-uses-permission#android.permission.READ_EXTERNAL_STORAGE
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:10:5-11:38
-	android:maxSdkVersion
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:11:9-35
-	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:10:22-77
-uses-permission#android.permission.READ_MEDIA_DOCUMENTS
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:5-79
-	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:22-76
 uses-permission#android.permission.INTERNET
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:15:5-67
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:5-67
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:15:22-64
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:12:22-64
 uses-permission#android.permission.ACCESS_NETWORK_STATE
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:16:5-79
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:13:5-79
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:16:22-76
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:13:22-76
 application
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:18:5-59:19
-INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:18:5-59:19
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:15:5-56:19
+INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:15:5-56:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.compose.ui:ui-tooling-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7801b6573c14574d693c3257a1727f36\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
 MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\b724606b85cc4228f65df8d08255b5b3\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
@@ -159,59 +150,59 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\UnknownBoy\.gradle
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.12.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\e1b2ee99c9859ef10a1634cbf44c3814\transformed\core-1.12.0\AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:24:9-35
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:21:9-35
 	android:label
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:22:9-34
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:19:9-34
 	android:roundIcon
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:23:9-54
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:20:9-54
 	tools:targetApi
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:26:9-29
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:23:9-29
 	android:icon
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:21:9-43
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:18:9-43
 	android:allowBackup
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:20:9-35
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:17:9-35
 	android:theme
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:25:9-46
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:22:9-46
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:19:9-36
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:16:9-36
 activity#com.prosayac.app.presentation.MainActivity
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:28:9-46:20
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:25:9-43:20
 	android:exported
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:30:13-36
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:27:13-36
 	android:configChanges
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:31:13-87
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:28:13-87
 	android:theme
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:32:13-50
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:29:13-50
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:29:13-54
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:26:13-54
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:33:13-36:29
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:30:13-33:29
 action#android.intent.action.MAIN
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:34:17-69
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:31:17-69
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:34:25-66
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:31:25-66
 category#android.intent.category.LAUNCHER
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:35:17-77
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:32:17-77
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:35:27-74
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:32:27-74
 intent-filter#action:name:android.hardware.usb.action.USB_DEVICE_ATTACHED
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:39:13-41:29
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:36:13-38:29
 action#android.hardware.usb.action.USB_DEVICE_ATTACHED
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:40:17-90
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:37:17-90
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:40:25-87
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:37:25-87
 meta-data#android.hardware.usb.action.USB_DEVICE_ATTACHED
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:43:13-45:57
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:40:13-42:57
 	android:resource
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:45:17-54
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:42:17-54
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:44:17-79
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:41:17-79
 meta-data#android.support.FILE_PROVIDER_PATHS
-ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:54:13-56:54
+ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:51:13-53:54
 	android:resource
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:56:17-51
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:53:17-51
 	android:name
-		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:55:17-67
+		ADDED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml:52:17-67
 uses-sdk
 INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
 INJECTED from C:\Users\UnknownBoy\Desktop\projelerim\ProSayac\app\src\main\AndroidManifest.xml
@@ -310,14 +301,16 @@ MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\UnknownBoy\.grad
 MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\a37d90e3f97016565faf7ccea1c4d1d5\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7440320f35650731f9dfa9fd7db896fb\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
 MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\7440320f35650731f9dfa9fd7db896fb\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3bb784a663844b35d4a32a9429e44b4a\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3bb784a663844b35d4a32a9429e44b4a\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\1d64d62a42a4fd1edb855ceff9441c6f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\1d64d62a42a4fd1edb855ceff9441c6f\transformed\lifecycle-viewmodel-2.7.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3ef3515e7619caf4111dcf5e95b169cf\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3ef3515e7619caf4111dcf5e95b169cf\transformed\lifecycle-runtime-2.7.0\AndroidManifest.xml:5:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\34f0694449a1c09b7c00953559bd9432\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
 MERGED from [androidx.lifecycle:lifecycle-runtime-ktx:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\34f0694449a1c09b7c00953559bd9432\transformed\lifecycle-runtime-ktx-2.7.0\AndroidManifest.xml:20:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3bb784a663844b35d4a32a9429e44b4a\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
-MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\3bb784a663844b35d4a32a9429e44b4a\transformed\lifecycle-viewmodel-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\4908caf3ca35cd5406d0d18a8cbbe853\transformed\lifecycle-runtime-compose-2.7.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose:2.7.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\4908caf3ca35cd5406d0d18a8cbbe853\transformed\lifecycle-runtime-compose-2.7.0\AndroidManifest.xml:5:5-44
 MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\17d2a3bc9e977035358b7f51d5fe7778\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
 MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\UnknownBoy\.gradle\caches\transforms-3\17d2a3bc9e977035358b7f51d5fe7778\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
 MERGED from [androidx.compose.ui:ui-android:1.6.1] C:\Users\UnknownBoy\.gradle\caches\transforms-3\52e2c1568cb4a415a7096b3a70e3832f\transformed\ui-release\AndroidManifest.xml:5:5-44

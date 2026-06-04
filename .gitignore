@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+
+# Kotlin
+.kotlin/
+
+# Local IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Signed APK / keystore
+*.jks
+*.keystore
+
+# Misc
+*.log
+*.tmp
+*.bak
+
+# Design assets / mockups (root-level references, not app resources)
+/*.png
+/*.jpg
+/*.jpeg

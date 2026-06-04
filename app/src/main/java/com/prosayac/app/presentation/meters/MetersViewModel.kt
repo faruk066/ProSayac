@@ -5,9 +5,11 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prosayac.app.domain.model.Meter
+import com.prosayac.app.domain.model.Reading
 import com.prosayac.app.domain.repository.MeterRepository
-import com.prosayac.app.util.excel.ExcelParser
+import com.prosayac.app.util.excel.ExcelFormat
 import com.prosayac.app.util.excel.ExcelParseError
+import com.prosayac.app.util.excel.ExcelParser
 import com.prosayac.app.util.log.LoggerService
 import com.prosayac.app.util.log.LogTag
 import com.prosayac.app.util.serial.ConnectionState
@@ -23,6 +25,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import org.apache.poi.ss.usermodel.Row
+import org.apache.poi.ss.usermodel.WorkbookFactory
 import javax.inject.Inject
 
 data class MetersUiState(
@@ -41,10 +45,10 @@ data class MetersUiState(
     val error: String? = null,
     val isReadingInProgress: Boolean = false,
     val readingProgressMessage: String = "",
-    /** Per-meter reading status: meterId -> status ("polling", "success", "timeout", "error") */
     val meterReadStatuses: Map<Long, String> = emptyMap(),
-    /** Current reading value being displayed per meter while polling */
-    val meterReadingValues: Map<Long, String> = emptyMap()
+    val meterReadingValues: Map<Long, String> = emptyMap(),
+    val pendingFormatChoiceUri: Uri? = null,
+    val pendingFormatOptions: List<ExcelFormat> = emptyList()
 )
 
 data class ImportResultState(
@@ -65,7 +69,6 @@ class MetersViewModel @Inject constructor(
 
     private val excelParser = ExcelParser()
 
-    /** Track the active reading Job so it can be cancelled on demand. */
     private var readingJob: Job? = null
 
     init {
@@ -83,7 +86,7 @@ class MetersViewModel @Inject constructor(
                     )
                 }
                 .collect { meters ->
-                    val sortedMeters = meters.sortedWith(naturalDaireComparator)
+                    val sortedMeters = meters.sortedWith(naturalComparator)
                     _uiState.value = _uiState.value.copy(
                         meters = sortedMeters,
                         isLoading = false
@@ -97,9 +100,6 @@ class MetersViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showDropzone = !_uiState.value.showDropzone)
     }
 
-    /**
-     * Step 1: User selects Excel file. We store the URI and show the Building Name dialog.
-     */
     fun onFileSelected(uri: Uri) {
         _uiState.value = _uiState.value.copy(
             pendingImportUri = uri,
@@ -108,9 +108,6 @@ class MetersViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Step 2: User confirms the building name. We proceed with the import.
-     */
     fun confirmBuildingName(buildingName: String) {
         val uri = _uiState.value.pendingImportUri ?: return
 
@@ -123,10 +120,19 @@ class MetersViewModel @Inject constructor(
 
             try {
                 val result = excelParser.parse(context, uri, buildingName)
+
+                if (result.ambiguousFormats.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(
+                        isImporting = false,
+                        pendingFormatChoiceUri = uri,
+                        pendingFormatOptions = result.ambiguousFormats,
+                        importProgress = ""
+                    )
+                    return@launch
+                }
+
                 _uiState.value = _uiState.value.copy(importProgress = "Veriler kaydediliyor...")
 
-                // Atomic import: delete + insert in a single transaction
-                // If anything fails, Room rolls back, preserving old data
                 LoggerService.log(LogTag.INFO, "Atomik içe aktarma başlatılıyor (${result.meters.size} sayaç)")
                 meterRepository.importMetersAtomic(result.meters)
 
@@ -165,27 +171,33 @@ class MetersViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showImportResult = false, importResult = null)
     }
 
-    // =============================================================================
-    // HARDWARE READING PIPELINE (REAL M-Bus POLLING)
-    // =============================================================================
+    fun onFormatPicked(format: ExcelFormat) {
+        val uri = _uiState.value.pendingFormatChoiceUri ?: return
+        _uiState.value = _uiState.value.copy(
+            pendingFormatChoiceUri = null,
+            pendingFormatOptions = emptyList()
+        )
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                showBuildingNameDialog = true,
+                pendingImportUri = uri,
+                showDropzone = false
+            )
+        }
+    }
 
-    /**
-     * "Okumaya Başla" - Start hardware polling for all "Unread" meters.
-     *
-     * For each meter with status "Unread":
-     *  1. Build and send SND_UD via MBusProtocolHandler
-     *  2. Wait for Rsp_UD response (5 second timeout)
-     *  3. Parse response and extract Endeks (reading value)
-     *  4. Update meter status in DB and UI
-     *  5. If timeout, mark as "Cihaz Yanıt Vermedi"
-     */
+    fun dismissFormatChoice() {
+        _uiState.value = _uiState.value.copy(
+            pendingFormatChoiceUri = null,
+            pendingFormatOptions = emptyList()
+        )
+    }
+
     fun startReading() {
-        // Cancel any previous reading job before starting a new one
         readingJob?.cancel()
         readingJob = viewModelScope.launch {
             LoggerService.log(LogTag.INFO, "======= HARDWARE OKUMA BAŞLATILDI =======")
 
-            // Check connection state
             if (serialManager.connectionState.value != ConnectionState.CONNECTED) {
                 LoggerService.log(LogTag.WARN, "M-Bus bağlı değil - okuma başlatılamadı")
                 _uiState.value = _uiState.value.copy(
@@ -225,7 +237,6 @@ class MetersViewModel @Inject constructor(
                     break
                 }
 
-                // Update per-meter status to "polling"
                 updateMeterStatus(meter.id, "polling")
 
                 val progressMsg = "$index / ${unreadMeters.size} okundu"
@@ -238,7 +249,6 @@ class MetersViewModel @Inject constructor(
                     "Sayaç [$index/${unreadMeters.size}] sorgulanıyor: ${meter.serialNumber}"
                 )
 
-                // Poll the meter via M-Bus protocol
                 val result = MBusProtocolHandler.pollMeter(
                     serialNumber = meter.serialNumber,
                     serialManager = serialManager
@@ -246,7 +256,6 @@ class MetersViewModel @Inject constructor(
 
                 when {
                     result.readingValue != null -> {
-                        // SUCCESS: Real reading received
                         LoggerService.log(
                             LogTag.INFO,
                             "OKUNDU: ${meter.serialNumber} = ${result.readingValue}"
@@ -257,7 +266,6 @@ class MetersViewModel @Inject constructor(
                         readCount++
                     }
                     result.errorMessage != null && result.errorMessage.contains("Cihaz Yanıt Vermedi", ignoreCase = true) -> {
-                        // TIMEOUT
                         LoggerService.log(
                             LogTag.WARN,
                             "ZAMAN AŞIMI: ${meter.serialNumber} - 5 saniyede yanıt gelmedi"
@@ -266,7 +274,6 @@ class MetersViewModel @Inject constructor(
                         timeoutCount++
                     }
                     else -> {
-                        // OTHER ERROR
                         LoggerService.log(
                             LogTag.ERROR,
                             "HATA: ${meter.serialNumber} - ${result.errorMessage ?: "bilinmeyen"}"
@@ -276,7 +283,6 @@ class MetersViewModel @Inject constructor(
                     }
                 }
 
-                // Inter-frame delay between successive meter polls
                 if (index < unreadMeters.size - 1) {
                     delay(MBusProtocolHandler.INTER_FRAME_DELAY_MS)
                 }
@@ -295,9 +301,6 @@ class MetersViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Cancels an ongoing reading session.
-     */
     fun cancelReading() {
         LoggerService.log(LogTag.WARN, "Okuma kullanıcı tarafından iptal edildi")
         readingJob?.cancel()
@@ -310,10 +313,6 @@ class MetersViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Called when real M-Bus reading data is received from the hardware gateway.
-     * Updates the meter status to "Read" with the actual value.
-     */
     private suspend fun onMeterReadingReceived(meterId: Long, readingValue: String) {
         try {
             meterRepository.updateMeterReading(
@@ -323,9 +322,8 @@ class MetersViewModel @Inject constructor(
                 readingDate = System.currentTimeMillis()
             )
 
-            // Also insert a Reading record
             meterRepository.insertReading(
-                com.prosayac.app.domain.model.Reading(
+                Reading(
                     meterId = meterId,
                     readingValue = readingValue,
                     readingDate = System.currentTimeMillis(),
@@ -341,34 +339,16 @@ class MetersViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Update per-meter polling status in UI.
-     */
     private fun updateMeterStatus(meterId: Long, status: String) {
         val current = _uiState.value.meterReadStatuses.toMutableMap()
         current[meterId] = status
         _uiState.value = _uiState.value.copy(meterReadStatuses = current)
     }
 
-    /**
-     * Update per-meter reading value displayed during polling.
-     */
     private fun updateMeterReadingValue(meterId: Long, value: String) {
         val current = _uiState.value.meterReadingValues.toMutableMap()
         current[meterId] = value
         _uiState.value = _uiState.value.copy(meterReadingValues = current)
-    }
-
-    /**
-     * Called when all meters have been read (or the reading session ends).
-     */
-    fun finishReading() {
-        _uiState.value = _uiState.value.copy(
-            isReadingInProgress = false,
-            readingProgressMessage = "",
-            meterReadStatuses = emptyMap(),
-            meterReadingValues = emptyMap()
-        )
     }
 
     fun setTypeFilter(type: String) {
@@ -385,7 +365,7 @@ class MetersViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(error = null)
     }
 
-    private val naturalDaireComparator = Comparator<Meter> { a, b ->
+    private val naturalComparator = Comparator<Meter> { a, b ->
         val flatA = a.flatNumber
         val flatB = b.flatNumber
         if (flatA.isBlank() && flatB.isBlank()) 0
