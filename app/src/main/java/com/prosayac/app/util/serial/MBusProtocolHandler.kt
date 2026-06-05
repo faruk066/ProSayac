@@ -2,6 +2,7 @@ package com.prosayac.app.util.serial
 
 import com.prosayac.app.util.log.LoggerService
 import com.prosayac.app.util.log.LogTag
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * MBusParser — 1:1 port of mbus_parser.dart.
