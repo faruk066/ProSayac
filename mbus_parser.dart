@@ -1,16 +1,17 @@
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
-
 class MBusRawData {
   final String meterId;
   final double energy;
   final double volume;
+  final bool isValid;
 
   MBusRawData({
     required this.meterId,
     required this.energy,
     required this.volume,
+    required this.isValid,
   });
 }
 
@@ -27,65 +28,80 @@ class MBusParser {
 
     double energy = 0.0;
     double volume = 0.0;
+    bool validBlockFound = false;
 
     int i = 19;
     while (i < bytes.length) {
-      final dif = bytes[i];
-      if (dif == 0x0F || dif == 0x1F) break;
+      try {
+        final dif = bytes[i];
+        if (dif == 0x0F || dif == 0x1F) break;
 
-      final dataType = dif & 0x0F;
-      i++;
+        final dataType = dif & 0x0F;
+        i++;
 
-      while (i < bytes.length && (bytes[i - 1] & 0x80) != 0) {
-        if ((bytes[i] & 0x80) == 0) {
+        while (i < bytes.length && (bytes[i - 1] & 0x80) != 0) {
+          if ((bytes[i] & 0x80) == 0) {
+            i++;
+            break;
+          }
           i++;
+        }
+        if (i >= bytes.length) break;
+
+        final vif = bytes[i];
+        i++;
+
+        while (i < bytes.length && (bytes[i - 1] & 0x80) != 0) {
+          if ((bytes[i] & 0x80) == 0) {
+            i++;
+            break;
+          }
+          i++;
+        }
+        if (i >= bytes.length) break;
+
+        int length = _dataLength(dataType);
+        // Unknown DIF type (e.g. manufacturer-specific blocks like 42 6C):
+        // skip cleanly with continue — do NOT break the entire loop.
+        if (length < 0) continue;
+        if (i + length > bytes.length) break;
+
+        final valueBytes = bytes.sublist(i, i + length);
+        i += length;
+
+        double rawVal = 0.0;
+        if (dataType == 0x04) {
+          rawVal = _decodeInt32(valueBytes);
+        } else if (dataType == 0x0C) {
+          rawVal = _decodeBcdInt(valueBytes);
+        } else {
+          continue;
+        }
+
+        final vifCode = vif & 0x7F;
+
+        if (vifCode >= 0x10 && vifCode <= 0x17) {
+          int exponent = vifCode - 0x16;
+          volume += rawVal * _pow10(exponent);
+          validBlockFound = true;
+          if (isWaterMeter) break;
+        } else if (!isWaterMeter && vifCode >= 0x00 && vifCode <= 0x07) {
+          int exponent = vifCode - 0x03;
+          energy += rawVal * _pow10(exponent);
+          validBlockFound = true;
           break;
         }
-        i++;
-      }
-      if (i >= bytes.length) break;
-
-      final vif = bytes[i];
-      i++;
-
-      while (i < bytes.length && (bytes[i - 1] & 0x80) != 0) {
-        if ((bytes[i] & 0x80) == 0) {
-          i++;
-          break;
-        }
-        i++;
-      }
-      if (i >= bytes.length) break;
-
-      int length = _dataLength(dataType);
-      if (length < 0 || i + length > bytes.length) break;
-
-      final valueBytes = bytes.sublist(i, i + length);
-      i += length;
-
-      double rawVal = 0.0;
-      if (dataType == 0x04) {
-        rawVal = _decodeInt32(valueBytes);
-      } else if (dataType == 0x0C) {
-        rawVal = _decodeBcdInt(valueBytes);
-      } else {
-        continue;
-      }
-
-      final vifCode = vif & 0x7F;
-
-      if (vifCode >= 0x10 && vifCode <= 0x17) {
-        int exponent = vifCode - 0x16;
-        volume += rawVal * _pow10(exponent);
-        if (isWaterMeter) break;
-      } else if (!isWaterMeter && vifCode >= 0x00 && vifCode <= 0x07) {
-        int exponent = vifCode - 0x03;
-        energy += rawVal * _pow10(exponent);
+      } catch (_) {
         break;
       }
     }
 
-    return MBusRawData(meterId: meterId, energy: energy, volume: volume);
+    return MBusRawData(
+      meterId: meterId,
+      energy: energy,
+      volume: volume,
+      isValid: validBlockFound,
+    );
   }
 
   static String _decodeBcd(List<int> bytes) {

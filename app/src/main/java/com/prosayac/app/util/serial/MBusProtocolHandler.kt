@@ -2,7 +2,6 @@ package com.prosayac.app.util.serial
 
 import com.prosayac.app.util.log.LoggerService
 import com.prosayac.app.util.log.LogTag
-import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * MBusParser — 1:1 port of mbus_parser.dart.
@@ -83,72 +82,88 @@ object MBusProtocolHandler {
         var energy = 0.0
         var volume = 0.0
 
+        var energyFound = false
+        var volumeFound = false
+
         var i = 19
         while (i < bytes.size) {
-            val dif = bytes[i].toInt() and 0xFF
+            try {
+                val dif = bytes[i].toInt() and 0xFF
 
-            // Break on fill bytes (0x0F) or 0x1F
-            if (dif == 0x0F || dif == 0x1F) break
+                // Break on fill bytes (0x0F) or 0x1F
+                if (dif == 0x0F || dif == 0x1F) break
 
-            val dataType = dif and 0x0F
-            i++
+                val dataType = dif and 0x0F
+                i++
 
-            // Skip DIF extension bytes (DIF has bit 7 set)
-            while (i < bytes.size && ((bytes[i - 1].toInt() and 0xFF) and 0x80) != 0) {
-                if (((bytes[i].toInt() and 0xFF) and 0x80) == 0) {
+                // Skip DIF extension bytes (DIF has bit 7 set)
+                while (i < bytes.size && ((bytes[i - 1].toInt() and 0xFF) and 0x80) != 0) {
+                    if (((bytes[i].toInt() and 0xFF) and 0x80) == 0) {
+                        i++
+                        break
+                    }
                     i++
+                }
+                if (i >= bytes.size) break
+
+                // Read VIF
+                val vif = bytes[i].toInt() and 0xFF
+                i++
+
+                // Skip VIF extension bytes (VIF has bit 7 set)
+                while (i < bytes.size && ((bytes[i - 1].toInt() and 0xFF) and 0x80) != 0) {
+                    if (((bytes[i].toInt() and 0xFF) and 0x80) == 0) {
+                        i++
+                        break
+                    }
+                    i++
+                }
+                if (i >= bytes.size) break
+
+                // Determine data length from DIF data type
+                val length = dataLength(dataType)
+                // Unknown DIF type: skip this block cleanly — do NOT abort the entire parse.
+                // Manufacturer-specific blocks (e.g. 42 6C) must not invalidate already-parsed values.
+                if (length < 0) continue
+                if (i + length > bytes.size) break
+
+                val valueBytes = bytes.copyOfRange(i, i + length)
+                i += length
+
+                // Decode value based on data type
+                var rawVal = 0.0
+                when (dataType) {
+                    0x04 -> rawVal = decodeInt32(valueBytes)        // 4-byte signed integer
+                    0x0C -> rawVal = decodeBcdIntForParse(valueBytes) // BCD encoded
+                    else -> continue
+                }
+
+                val vifCode = vif and 0x7F
+
+                // Volume VIF: 0x10..0x17 (Volume in m³, ×10^(VIF-6))
+                if (vifCode in 0x10..0x17) {
+                    val exponent = vifCode - 0x16
+                    volume += rawVal * pow10(exponent)
+                    volumeFound = true
+                    if (isWaterMeter) break
+                }
+                // Energy VIF: 0x00..0x07 (Energy in Wh, ×10^(VIF-3))
+                else if (!isWaterMeter && vifCode in 0x00..0x07) {
+                    val exponent = vifCode - 0x03
+                    energy += rawVal * pow10(exponent)
+                    energyFound = true
                     break
                 }
-                i++
-            }
-            if (i >= bytes.size) break
-
-            // Read VIF
-            val vif = bytes[i].toInt() and 0xFF
-            i++
-
-            // Skip VIF extension bytes (VIF has bit 7 set)
-            while (i < bytes.size && ((bytes[i - 1].toInt() and 0xFF) and 0x80) != 0) {
-                if (((bytes[i].toInt() and 0xFF) and 0x80) == 0) {
-                    i++
-                    break
-                }
-                i++
-            }
-            if (i >= bytes.size) break
-
-            // Determine data length from DIF data type
-            val length = dataLength(dataType)
-            if (length < 0 || i + length > bytes.size) break
-
-            val valueBytes = bytes.copyOfRange(i, i + length)
-            i += length
-
-            // Decode value based on data type
-            var rawVal = 0.0
-            when (dataType) {
-                0x04 -> rawVal = decodeInt32(valueBytes)        // 4-byte signed integer
-                0x0C -> rawVal = decodeBcdIntForParse(valueBytes) // BCD encoded
-                else -> continue
-            }
-
-            val vifCode = vif and 0x7F
-
-            // Volume VIF: 0x10..0x17 (Volume in m³, ×10^(VIF-6))
-            if (vifCode in 0x10..0x17) {
-                val exponent = vifCode - 0x16
-                volume += rawVal * pow10(exponent)
-                if (isWaterMeter) break
-            }
-            // Energy VIF: 0x00..0x07 (Energy in Wh, ×10^(VIF-3))
-            else if (!isWaterMeter && vifCode in 0x00..0x07) {
-                val exponent = vifCode - 0x03
-                energy += rawVal * pow10(exponent)
+            } catch (e: Exception) {
+                LoggerService.log(LogTag.WARN, "Error parsing M-Bus data block at index $i. Stopping parse but preserving found values. Error: ${e.message}")
                 break
             }
         }
 
-        val isValid = meterId.isNotEmpty() && (energy > 0.0 || volume > 0.0)
+        // Convert energy from Wh to kWh
+        val energyInKwh = energy / 1000.0
+
+        val isValid = meterId.isNotEmpty() && (energyFound || volumeFound)
         val errorMsg = when {
             meterId.isEmpty() -> "Sayaç ID çözümlenemedi"
             !isValid -> "Enerji/Volume değeri bulunamadı"
@@ -157,12 +172,12 @@ object MBusProtocolHandler {
 
         LoggerService.log(
             LogTag.INFO,
-            "Parse: ID=$meterId, Energy=$energy Wh, Volume=$volume m³, Valid=$isValid"
+            "Parse: ID=$meterId, Energy=${energyInKwh} kWh, Volume=$volume m³, Valid=$isValid"
         )
 
         return ParseResult(
             meterId = meterId.ifEmpty { null },
-            energy = energy,
+            energy = energyInKwh,
             volume = volume,
             rawHex = rawHex,
             isValid = isValid,
@@ -288,11 +303,22 @@ object MBusProtocolHandler {
 
         val result = parseData(bytes)
 
+        val isWaterMeter = if (bytes.size > 6) {
+            val medium = bytes[6].toInt() and 0xFF
+            medium == MEDIUM_WARM_WATER || medium == MEDIUM_COLD_WATER
+        } else {
+            false
+        }
+
         // Determine the primary reading value from the parser's auto-detection
-        val readingValue = when {
-            result.volume > 0.0 -> String.format("%.3f", result.volume)
-            result.energy > 0.0 -> String.format("%.0f", result.energy)
-            else -> null
+        val readingValue = if (result.isValid) {
+            if (isWaterMeter) {
+                String.format("%.3f", result.volume)
+            } else { // Heat meter, energy is in kWh
+                String.format("%.3f", result.energy)
+            }
+        } else {
+            null
         }
 
         return ResponseResult(
@@ -328,21 +354,26 @@ object MBusProtocolHandler {
                 )
             }
 
+            // ── AGGRESSIVE BUFFER PURGE before starting ──
+            // Ensures no stale bytes from previous cycles are present.
+            serialManager.purgeAllBuffers()
+
             // Use the full Calmet sequence from sendReadRequest
+            // (which also calls purgeAllBuffers internally before the REQ_UD2)
             serialManager.sendReadRequest(serialNumber)
 
-            // Wait for response with timeout
-            val response = withTimeoutOrNull(5_000L) {
-                serialManager.waitForRawResponse()
-            }
+            // ── SMART FRAME ACCUMULATOR ──
+            // Hunts for 0x68, discards garbage (F9/E5/00), waits for
+            // L+6 bytes. Default 1500ms timeout.
+            val response = serialManager.waitForRspUdFrame(timeoutMs = 1500L)
 
             if (response == null) {
-                LoggerService.log(LogTag.WARN, "Sayaç [$serialNumber] 5 saniye içinde yanıt vermedi")
+                LoggerService.log(LogTag.WARN, "Sayaç [$serialNumber] 1500ms içinde Rsp_UD çerçevesi alınamadı")
                 return ResponseResult(
                     isValid = false,
                     readingValue = null,
                     rawHex = "",
-                    errorMessage = "Cihaz Yanıt Vermedi (5s timeout)"
+                    errorMessage = "Cihaz Yanıt Vermedi (1500ms timeout)"
                 )
             }
 
