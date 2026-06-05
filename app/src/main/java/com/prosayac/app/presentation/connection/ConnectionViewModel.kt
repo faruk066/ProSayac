@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 data class ConnectionUiState(
     val connectionState: ConnectionState = ConnectionState.DISCONNECTED,
-    val baudRate: Int = 9600,
+    val baudRate: Int = 2400,
     val isConnecting: Boolean = false
 )
 
@@ -37,7 +37,7 @@ class ConnectionViewModel @Inject constructor(
         }
     }
 
-    fun connect(baudRate: Int = 9600) {
+    fun connect(baudRate: Int = 2400) {
         _uiState.value = _uiState.value.copy(baudRate = baudRate)
         viewModelScope.launch {
             serialManager.connect(

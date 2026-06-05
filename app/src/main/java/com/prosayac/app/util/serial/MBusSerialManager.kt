@@ -52,6 +52,10 @@ class MBusSerialManager @Inject constructor(
     private val rawBuffer = mutableListOf<Byte>()
     private var rawResponseCallback: ((ByteArray) -> Unit)? = null
 
+    // ── Smart Frame Accumulator (persistent callback — NOT single-shot) ──
+    // Used by waitForRspUdFrame() to scavenge for 0x68 and accumulate L+6 bytes.
+    private var accumulatorCallback: ((ByteArray) -> Unit)? = null
+
     // E5 detection callback
     private var e5Callback: (() -> Unit)? = null
 
@@ -319,10 +323,16 @@ class MBusSerialManager @Inject constructor(
                 LoggerService.log(LogTag.HARDWARE, "E5 ALINAMADI! (Kör Okuma Aktif - Zorla 7B gönderiliyor...)")
             }
 
+            // ── AGGRESSIVE HARDWARE BUFFER PURGE ──
+            // Clear USB hardware buffers AND software buffers before sending
+            // the REQ_UD2 blind read command. This prevents leftover garbage
+            // bytes (F9, E5, etc.) from poisoning the Rsp_UD frame.
+            purgeAllBuffers()
+
             // Step E: Delay then forced REQ_UD2 (regardless of E5 reception)
             delay(150)
             write(byteArrayOf(0x10.toByte(), 0x7B.toByte(), 0xFD.toByte(), 0x78.toByte(), 0x16.toByte()))
-            LoggerService.log(LogTag.HARDWARE, "Okuma Komutu (FD - 7B) hatta basıldı!")
+            LoggerService.log(LogTag.HARDWARE, "Okuma Komutu (FD - 7B) hatta basıldı! (tamponlar temizlendi)")
         } else {
             // M-Bus Short Frame Broadcast Read Request
             write(byteArrayOf(0x10.toByte(), 0x5B.toByte(), 0xFE.toByte(), 0x59.toByte(), 0x16.toByte()))
@@ -361,6 +371,150 @@ class MBusSerialManager @Inject constructor(
 
             rawResponseCallback = { data ->
                 cont.resume(data)
+            }
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // AGGRESSIVE PORT PURGE
+    // Clears the USB hardware buffer AND all internal software buffers.
+    // This MUST be called before sending the blind read command (10 7B FD 78 16)
+    // to guarantee zero leftover bytes (F9, E5, etc.) are in the buffer.
+    // ─────────────────────────────────────────────────────────────────────────
+    fun purgeAllBuffers() {
+        LoggerService.log(LogTag.HARDWARE, "TAMPON TEMİZLEME: Donanım ve yazılım tamponları temizleniyor...")
+
+        // 1. Purge hardware buffers (USB serial driver level)
+        try {
+            serialPort?.purgeHwBuffers(true, true)
+            LoggerService.log(LogTag.HARDWARE, "Donanım tamponları purged (RX+TX)")
+        } catch (e: Exception) {
+            LoggerService.log(LogTag.WARN, "Donanım tampon temizleme hatası: ${e.message}")
+            // Fallback: drain manually if purgeHwBuffers is not available
+            try {
+                val drainBuf = ByteArray(256)
+                while (true) {
+                    val read = serialPort?.read(drainBuf, 50) ?: -1
+                    if (read <= 0) break
+                    LoggerService.log(LogTag.HARDWARE, "Manuel tahliye: $read byte atıldı")
+                }
+            } catch (_: Exception) {}
+        }
+
+        // 2. Clear internal software buffers
+        synchronized(dataBuffer) {
+            dataBuffer.clear()
+            lastSentBytes.clear()
+        }
+        synchronized(rawBuffer) {
+            rawBuffer.clear()
+            rawResponseCallback = null
+        }
+        accumulatorCallback = null
+        e5Callback = null
+
+        LoggerService.log(LogTag.HARDWARE, "Tüm tamponlar temizlendi ✓")
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // SMART FRAME ACCUMULATOR: waitForRspUdFrame
+    //
+    // Listens to the incoming stream for up to 'timeoutMs' milliseconds.
+    // - Discards garbage bytes (0xF9, 0xE5, 0x00) until 0x68 is found.
+    // - Once 0x68 is found, reads length byte (L) and waits for L+6 total bytes.
+    // - Only returns the complete frame when the buffer holds exactly L+6 bytes.
+    //
+    // This prevents the "instant fail on garbage" bug where the parser reads
+    // leftover noise bytes and aborts before the real Rsp_UD frame arrives.
+    // ─────────────────────────────────────────────────────────────────────────
+    suspend fun waitForRspUdFrame(timeoutMs: Long = 1500L): ByteArray? {
+        return withTimeoutOrNull(timeoutMs) {
+            suspendCancellableCoroutine<ByteArray?> { cont ->
+                // Accumulator buffer: raw bytes collected while hunting for 0x68
+                val accumulator = mutableListOf<Byte>()
+                var targetSize: Int? = null  // L + 6, set once we have the length byte
+
+                accumulatorCallback = { cleanData ->
+                    for (b in cleanData) {
+                        val ub = b.toInt() and 0xFF
+
+                        if (targetSize == null) {
+                            if (accumulator.isEmpty()) {
+                                // ── GARBAGE FILTER ──
+                                // Discard known noise. 0x00 MUST NOT be filtered here.
+                                if (ub == 0xF9 || ub == 0xE5) {
+                                    LoggerService.log(LogTag.HARDWARE, "ÇÖP BYTE ATLANDI: %02X".format(ub))
+                                    continue
+                                }
+                                
+                                // ── HUNT FOR 0x68 START BYTE ──
+                                if (ub == 0x68) {
+                                    LoggerService.log(LogTag.HARDWARE, "0x68 BAŞLANGIÇ BULUNDU! Çerçeve başlığı biriktiriliyor...")
+                                    accumulator.add(b)
+                                } else {
+                                    LoggerService.log(LogTag.HARDWARE, "Beklenmeyen byte (0x68 aranıyor): %02X".format(ub))
+                                }
+                            } else {
+                                // ── ACCUMULATING HEADER (68 L L 68) ──
+                                accumulator.add(b)
+                                
+                                // ── VALIDATE M-BUS LONG FRAME HEADER ──
+                                if (accumulator.size == 4) {
+                                    val b0 = accumulator[0].toInt() and 0xFF
+                                    val b1 = accumulator[1].toInt() and 0xFF
+                                    val b2 = accumulator[2].toInt() and 0xFF
+                                    val b3 = accumulator[3].toInt() and 0xFF
+                                    
+                                    if (b0 == 0x68 && b3 == 0x68 && b1 == b2) {
+                                        targetSize = b1 + 6
+                                        LoggerService.log(LogTag.HARDWARE,
+                                            "Geçerli başlık (68 %02X %02X 68) → toplam %d byte bekleniyor".format(b1, b2, targetSize!!))
+                                    } else {
+                                        LoggerService.log(LogTag.HARDWARE,
+                                            "Geçersiz başlık (68 %02X %02X %02X) → tampon sıfırlanıyor".format(b1, b2, b3))
+                                        accumulator.clear()
+                                        // Recover if the mismatching 4th byte was actually a new frame start
+                                        if (b3 == 0x68) {
+                                            accumulator.add(b)
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            // ── ACCUMULATING PAYLOAD & FOOTER ──
+                            // targetSize is known, unconditionally accept every byte including 0x00
+                            accumulator.add(b)
+                        }
+
+                        // ── CHECK IF FRAME IS COMPLETE ──
+                        if (targetSize != null && accumulator.size >= targetSize!!) {
+                            val frame = accumulator.toByteArray()
+                            LoggerService.log(LogTag.HARDWARE,
+                                "ÇERÇEVE TAMAMLANDI: %d / %d byte".format(accumulator.size, targetSize!!))
+                            // Detach the accumulator so no further callbacks arrive
+                            accumulatorCallback = null
+                            // Resume the suspending coroutine — this completes it
+                            if (cont.isActive) {
+                                cont.resume(frame)
+                            }
+                            // Coroutine is already resumed; just fall through naturally
+                            // (break would be non-local in a non-inline lambda, so we
+                            //  let the loop finish — it won't cause harm since the
+                            //  accumulator is already detached)
+                        }
+                    }
+
+                    // Log accumulation progress
+                    if (accumulator.isNotEmpty()) {
+                        val hex = accumulator.joinToString(" ") { "%02X".format(it) }
+                        LoggerService.log(LogTag.HARDWARE,
+                            "Biriktiriliyor... (${accumulator.size} byte): $hex")
+                    }
+                }
+
+                cont.invokeOnCancellation {
+                    accumulatorCallback = null
+                }
             }
         }
     }
@@ -412,9 +566,6 @@ class MBusSerialManager @Inject constructor(
     private fun startIoManager(port: UsbSerialPort) {
         ioManager = SerialInputOutputManager(port, object : SerialInputOutputManager.Listener {
             override fun onNewData(data: ByteArray) {
-                val hex = data.joinToString(" ") { "%02X".format(it) }
-                LoggerService.log(LogTag.HARDWARE, "ALINAN ← $hex (${data.size} byte)")
-
                 // ── Echo Cancellation (1:1 from Dart) ──
                 synchronized(dataBuffer) {
                     dataBuffer.addAll(data.toList())
@@ -450,19 +601,31 @@ class MBusSerialManager @Inject constructor(
                             e5Callback = null
                         }
 
-                        // Forward to raw response callback or buffer
-                        synchronized(rawBuffer) {
-                            val callback = rawResponseCallback
-                            if (callback != null) {
-                                rawResponseCallback = null
-                                callback(cleanData)
-                            } else {
-                                rawBuffer.addAll(cleanData.toList())
+                        // ── SMART FRAME ACCUMULATOR (highest priority) ──
+                        // Forward to the accumulator if one is active (waitForRspUdFrame).
+                        // The accumulator is PERSISTENT — it stays registered until the
+                        // frame is complete or the coroutine is cancelled.
+                        // When active, the accumulator OWNS the data stream and rawBuffer
+                        // is bypassed entirely.
+                        val acc = accumulatorCallback
+                        if (acc != null) {
+                            acc(cleanData)
+                            // Bypass rawBuffer/channel — the accumulator is hunting for 0x68
+                        } else {
+                            // Forward to raw response callback or buffer
+                            synchronized(rawBuffer) {
+                                val callback = rawResponseCallback
+                                if (callback != null) {
+                                    rawResponseCallback = null
+                                    callback(cleanData)
+                                } else {
+                                    rawBuffer.addAll(cleanData.toList())
+                                }
                             }
-                        }
 
-                        // Also send to received data channel
-                        _receivedData.trySend(cleanData)
+                            // Also send to received data channel
+                            _receivedData.trySend(cleanData)
+                        }
                     }
                 }
             }

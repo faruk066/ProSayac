@@ -16,7 +16,7 @@ data class AppPreferences(
     val themeMode: String = "system", // "light", "dark", "system"
     val autoSyncEnabled: Boolean = false,
     val offlineMode: Boolean = true,
-    val baudRate: Int = 9600,
+    val baudRate: Int = 2400,
     val dataBits: Int = 8,
     val stopBits: Int = 1,
     val parity: Int = 0
@@ -41,7 +41,7 @@ class UserPreferences @Inject constructor(
             themeMode = prefs[PreferenceKeys.THEME_MODE] ?: "system",
             autoSyncEnabled = prefs[PreferenceKeys.AUTO_SYNC] ?: false,
             offlineMode = prefs[PreferenceKeys.OFFLINE_MODE] ?: true,
-            baudRate = prefs[PreferenceKeys.BAUD_RATE] ?: 9600,
+            baudRate = prefs[PreferenceKeys.BAUD_RATE] ?: 2400,
             dataBits = prefs[PreferenceKeys.DATA_BITS] ?: 8,
             stopBits = prefs[PreferenceKeys.STOP_BITS] ?: 1,
             parity = prefs[PreferenceKeys.PARITY] ?: 0
