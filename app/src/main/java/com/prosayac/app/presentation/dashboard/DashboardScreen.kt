@@ -12,6 +12,9 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -41,6 +44,19 @@ fun DashboardScreen(
     onMenuClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
+
+    // Refresh dashboard data every time this screen becomes visible
+    // (e.g., after returning from Meters screen post-reading session)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadAllData()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     Scaffold(
         topBar = {
@@ -126,6 +142,37 @@ fun DashboardScreen(
                             subtitle = "${state.unsyncedMeters} bekleyen",
                             icon = { Icon(Icons.Default.Sync, null, tint = SyncSynced) }
                         )
+                    }
+                }
+
+                // Chart error banner
+                if (state.isChartError && state.chartErrorMessage != null) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = ProMaxError.copy(alpha = 0.1f)
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    null,
+                                    tint = ProMaxError,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = state.chartErrorMessage,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = ProMaxError,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -428,6 +475,9 @@ fun LineChart(
     values: List<Float>,
     modifier: Modifier = Modifier
 ) {
+    // Safety: guard against empty values list that can crash during state transitions
+    if (values.isEmpty()) return
+
     val lineColor = ChartOrange
     val fillColor = ChartOrange.copy(alpha = 0.15f)
     val maxValue = values.maxOrNull()?.coerceAtLeast(1f) ?: 1f
@@ -454,8 +504,10 @@ fun LineChart(
         val fillPath = Path()
 
         for (i in 0 until visiblePoints) {
+            // Safety clamp: ensure index is within bounds after coercion
+            val safeIndex = i.coerceAtMost(values.size - 1)
             val x = if (pointCount > 1) i.toFloat() / (pointCount - 1) * canvasWidth else canvasWidth / 2
-            val y = topMargin + chartHeight - (values[i] / maxValue * chartHeight)
+            val y = topMargin + chartHeight - (values[safeIndex] / maxValue * chartHeight)
             points.add(Offset(x, y))
         }
 
@@ -463,8 +515,10 @@ fun LineChart(
         if (visiblePoints < pointCount && partialProgress > 0f) {
             val prevX = if (pointCount > 1) (visiblePoints - 1).toFloat() / (pointCount - 1) * canvasWidth else canvasWidth / 2
             val nextX = if (pointCount > 1) visiblePoints.toFloat() / (pointCount - 1) * canvasWidth else canvasWidth / 2
-            val prevY = topMargin + chartHeight - (values[visiblePoints - 1] / maxValue * chartHeight)
-            val nextY = topMargin + chartHeight - (values[visiblePoints] / maxValue * chartHeight)
+            val safePrevIdx = (visiblePoints - 1).coerceAtMost(values.size - 1)
+            val safeNextIdx = visiblePoints.coerceAtMost(values.size - 1)
+            val prevY = topMargin + chartHeight - (values[safePrevIdx] / maxValue * chartHeight)
+            val nextY = topMargin + chartHeight - (values[safeNextIdx] / maxValue * chartHeight)
             val interpX = prevX + (nextX - prevX) * partialProgress
             val interpY = prevY + (nextY - prevY) * partialProgress
             points.add(Offset(interpX, interpY))

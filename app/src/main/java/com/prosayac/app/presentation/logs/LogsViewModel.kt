@@ -73,16 +73,26 @@ class LogsViewModel @Inject constructor(
 
     fun shareExport() {
         val path = _uiState.value.exportPath ?: return
-        val intent = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
+        try {
+            val file = File(path)
+            if (!file.exists()) return
+
             val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}.fileprovider",
-                File(path)
+                file
             )
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(intent, "Günlükleri Paylaş")
+            // Required when starting activity from non-Activity context (Application)
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
+        } catch (e: Exception) {
+            // Best-effort: silently ignore share failures
         }
-        context.startActivity(Intent.createChooser(intent, "Günlükleri Paylaş"))
     }
 }
