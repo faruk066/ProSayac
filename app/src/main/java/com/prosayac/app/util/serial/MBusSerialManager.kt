@@ -504,12 +504,6 @@ class MBusSerialManager @Inject constructor(
                         }
                     }
 
-                    // Log accumulation progress
-                    if (accumulator.isNotEmpty()) {
-                        val hex = accumulator.joinToString(" ") { "%02X".format(it) }
-                        LoggerService.log(LogTag.HARDWARE,
-                            "Biriktiriliyor... (${accumulator.size} byte): $hex")
-                    }
                 }
 
                 cont.invokeOnCancellation {

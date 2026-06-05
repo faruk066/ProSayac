@@ -14,7 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -101,20 +101,26 @@ fun DashboardScreen(
                 // KPI SUMMARY CARDS (2x2 Grid)
                 item {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         KpiCard(
                             title = "TOPLAM",
                             value = state.totalMeters.toString(),
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                             accentColor = ChartBlue,
                             icon = { Icon(Icons.Default.Speed, null, tint = ChartBlue) }
                         )
                         KpiCard(
                             title = "OKUNAN",
                             value = state.readMeters.toString(),
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                             accentColor = ChartGreen,
                             progress = state.readingProgress,
                             icon = { Icon(Icons.Default.CheckCircle, null, tint = ChartGreen) }
@@ -123,20 +129,26 @@ fun DashboardScreen(
                 }
                 item {
                     Row(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(IntrinsicSize.Min),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         KpiCard(
                             title = "OKUNMAYAN",
                             value = state.unreadMeters.toString(),
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                             accentColor = ProMaxError,
                             icon = { Icon(Icons.Default.Cancel, null, tint = ProMaxError) }
                         )
                         KpiCard(
                             title = "SENKRONİZE",
                             value = (state.totalMeters - state.unsyncedMeters).toString(),
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight(),
                             accentColor = SyncSynced,
                             progress = state.syncProgress,
                             subtitle = "${state.unsyncedMeters} bekleyen",
@@ -166,7 +178,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = state.chartErrorMessage,
+                                    text = state.chartErrorMessage ?: "",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = ProMaxError,
                                     modifier = Modifier.weight(1f)
