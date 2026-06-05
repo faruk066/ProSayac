@@ -262,6 +262,19 @@ class MBusSerialManager @Inject constructor(
             throw Exception("Port bağlı değil!")
         }
 
+        // ── AGGRESSIVE BUFFER CLEARING ──
+        // Clear ALL buffers before starting a new read sequence to prevent
+        // stale data from previous meters bleeding into the current read.
+        synchronized(dataBuffer) {
+            dataBuffer.clear()
+            lastSentBytes.clear()
+        }
+        synchronized(rawBuffer) {
+            rawBuffer.clear()
+            rawResponseCallback = null
+        }
+        e5Callback = null
+
         if (!targetSerial.isNullOrEmpty() && targetSerial.length >= 8) {
             // ── 5-Adımlı Uyandırma ve Bekleme Zinciri (Calmet) ──
 

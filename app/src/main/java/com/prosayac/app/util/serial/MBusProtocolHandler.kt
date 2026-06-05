@@ -30,11 +30,17 @@ object MBusProtocolHandler {
         val isValid: Boolean,
         val readingValue: String?,
         val rawHex: String,
-        val errorMessage: String? = null
+        val errorMessage: String? = null,
+        val meterId: String? = null
     )
 
     /** Inter-frame delay between successive meter polls (ms) */
     const val INTER_FRAME_DELAY_MS = 200L
+
+    // ── Medium byte constants (CI field / Measurement Medium) ──
+    private const val MEDIUM_HEAT = 0x04       // Heat / Energy meter
+    private const val MEDIUM_WARM_WATER = 0x06 // Warm water
+    private const val MEDIUM_COLD_WATER = 0x07 // Cold water
 
     // ─────────────────────────────────────────────────────────────────────────
     // PARSE DATA (1:1 port of MBusParser.parseData)
@@ -42,11 +48,18 @@ object MBusProtocolHandler {
     /**
      * Parses the raw byte array from an M-Bus Rsp_UD frame.
      *
+     * Auto-detects water vs heat meter from the medium byte at bytes[6].
+     *
      * @param bytes Raw response bytes (should be echo-filtered already)
-     * @param isWaterMeter When true, stops at first volume VIF; when false, stops at first energy VIF
      * @return ParseResult with extracted meter ID, energy, and volume values
      */
-    fun parseData(bytes: ByteArray, isWaterMeter: Boolean = false): ParseResult {
+    fun parseData(bytes: ByteArray): ParseResult {
+        val isWaterMeter = if (bytes.size > 6) {
+            val medium = bytes[6].toInt() and 0xFF
+            medium == MEDIUM_WARM_WATER || medium == MEDIUM_COLD_WATER
+        } else {
+            false
+        }
         val rawHex = bytes.joinToString(" ") { "%02X".format(it) }
 
         if (bytes.isEmpty()) {
@@ -273,9 +286,9 @@ object MBusProtocolHandler {
         val hex = bytes.joinToString(" ") { "%02X".format(it) }
         LoggerService.log(LogTag.HARDWARE, "Rsp_UD ham veri (${bytes.size} byte): $hex")
 
-        val result = parseData(bytes, isWaterMeter = false)
+        val result = parseData(bytes)
 
-        // Determine the primary reading value: volume for water meters, energy otherwise
+        // Determine the primary reading value from the parser's auto-detection
         val readingValue = when {
             result.volume > 0.0 -> String.format("%.3f", result.volume)
             result.energy > 0.0 -> String.format("%.0f", result.energy)
@@ -286,7 +299,8 @@ object MBusProtocolHandler {
             isValid = result.isValid,
             readingValue = readingValue,
             rawHex = result.rawHex,
-            errorMessage = result.errorMessage
+            errorMessage = result.errorMessage,
+            meterId = result.meterId
         )
     }
 

@@ -254,31 +254,44 @@ class MetersViewModel @Inject constructor(
                     serialManager = serialManager
                 )
 
+                // ── STRICT ID MATCHING ──
+                // Find the meter by the parsed meterId from the frame, NOT by loop index.
+                // This prevents values from bleeding across meters due to async races.
+                val matchedMeter = if (result.meterId != null) {
+                    _uiState.value.meters.firstOrNull { it.serialNumber == result.meterId }
+                } else {
+                    null
+                }
+
+                // Fallback: if no parsed meterId, trust the loop's meter
+                val targetMeterId = matchedMeter?.id ?: meter.id
+                val displaySerial = matchedMeter?.serialNumber ?: meter.serialNumber
+
                 when {
                     result.readingValue != null -> {
                         LoggerService.log(
                             LogTag.INFO,
-                            "OKUNDU: ${meter.serialNumber} = ${result.readingValue}"
+                            "OKUNDU: $displaySerial = ${result.readingValue} (frameId=${result.meterId})"
                         )
-                        onMeterReadingReceived(meter.id, result.readingValue)
-                        updateMeterStatus(meter.id, "success")
-                        updateMeterReadingValue(meter.id, result.readingValue)
+                        onMeterReadingReceived(targetMeterId, result.readingValue)
+                        updateMeterStatus(targetMeterId, "success")
+                        updateMeterReadingValue(targetMeterId, result.readingValue)
                         readCount++
                     }
                     result.errorMessage != null && result.errorMessage.contains("Cihaz Yanıt Vermedi", ignoreCase = true) -> {
                         LoggerService.log(
                             LogTag.WARN,
-                            "ZAMAN AŞIMI: ${meter.serialNumber} - 5 saniyede yanıt gelmedi"
+                            "ZAMAN AŞIMI: $displaySerial - 5 saniyede yanıt gelmedi"
                         )
-                        updateMeterStatus(meter.id, "timeout")
+                        updateMeterStatus(targetMeterId, "timeout")
                         timeoutCount++
                     }
                     else -> {
                         LoggerService.log(
                             LogTag.ERROR,
-                            "HATA: ${meter.serialNumber} - ${result.errorMessage ?: "bilinmeyen"}"
+                            "HATA: $displaySerial - ${result.errorMessage ?: "bilinmeyen"}"
                         )
-                        updateMeterStatus(meter.id, "error")
+                        updateMeterStatus(targetMeterId, "error")
                         errorCount++
                     }
                 }
