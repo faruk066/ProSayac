@@ -81,11 +81,11 @@ fun ReadingsScreen(
             if (!state.isLoading && state.readings.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     FloatingActionButton(
-                        onClick = { viewModel.exportToCsv() },
+                        onClick = { viewModel.exportToXlsx() },
                         containerColor = ProMaxTertiary,
                         contentColor = ProMaxOnTertiary
                     ) {
-                        Icon(Icons.Default.FileDownload, "CSV Dışa Aktar")
+                        Icon(Icons.Default.FileDownload, "Excel (.xlsx) Dışa Aktar")
                     }
                     FloatingActionButton(
                         onClick = { /* Sync */ },
@@ -261,7 +261,7 @@ fun ReadingsScreen(
             dismissButton = {
                 TextButton(onClick = {
                     val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "text/csv"
+                        type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(exportPath))
                         putExtra(Intent.EXTRA_STREAM, uri)
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

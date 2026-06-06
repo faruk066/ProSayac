@@ -12,6 +12,8 @@ import com.prosayac.app.util.excel.ExcelParseError
 import com.prosayac.app.util.excel.ExcelParser
 import com.prosayac.app.util.log.LoggerService
 import com.prosayac.app.util.log.LogTag
+import com.prosayac.app.util.excel.METER_TYPE_HEAT
+import com.prosayac.app.util.excel.METER_TYPE_WATER
 import com.prosayac.app.util.serial.ConnectionState
 import com.prosayac.app.util.serial.MBusProtocolHandler
 import com.prosayac.app.util.serial.MBusSerialManager
@@ -269,13 +271,24 @@ class MetersViewModel @Inject constructor(
 
                 when {
                     result.readingValue != null -> {
+                        // ── DYNAMIC VALUE SELECTION BASED ON METER TYPE ──
+                        // Water meters report Volume (m³), NOT thermal energy.
+                        // The medium-byte heuristic in parseRspUD can miss certain
+                        // water meters, so we trust the database meterType instead.
+                        val meterForType = matchedMeter ?: meter
+                        val selectedValue = if (meterForType.meterType == METER_TYPE_WATER) {
+                            String.format("%.3f", result.volume)
+                        } else {
+                            String.format("%.3f", result.energy)
+                        }
+
                         LoggerService.log(
                             LogTag.INFO,
-                            "OKUNDU: $displaySerial = ${result.readingValue} (frameId=${result.meterId})"
+                            "OKUNDU: $displaySerial = $selectedValue (type=${meterForType.meterType}, energy=${result.energy}, volume=${result.volume}, frameId=${result.meterId})"
                         )
-                        onMeterReadingReceived(targetMeterId, result.readingValue)
+                        onMeterReadingReceived(targetMeterId, selectedValue)
                         updateMeterStatus(targetMeterId, "success")
-                        updateMeterReadingValue(targetMeterId, result.readingValue)
+                        updateMeterReadingValue(targetMeterId, selectedValue)
                         readCount++
                     }
                     result.errorMessage != null && result.errorMessage.contains("Cihaz Yanıt Vermedi", ignoreCase = true) -> {

@@ -30,7 +30,9 @@ object MBusProtocolHandler {
         val readingValue: String?,
         val rawHex: String,
         val errorMessage: String? = null,
-        val meterId: String? = null
+        val meterId: String? = null,
+        val energy: Double = 0.0,
+        val volume: Double = 0.0
     )
 
     /** Inter-frame delay between successive meter polls (ms) */
@@ -326,7 +328,9 @@ object MBusProtocolHandler {
             readingValue = readingValue,
             rawHex = result.rawHex,
             errorMessage = result.errorMessage,
-            meterId = result.meterId
+            meterId = result.meterId,
+            energy = result.energy,
+            volume = result.volume
         )
     }
 
