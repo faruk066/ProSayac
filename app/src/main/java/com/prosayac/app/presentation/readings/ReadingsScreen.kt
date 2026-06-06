@@ -29,6 +29,30 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
+/**
+ * Formats a reading value string by stripping unnecessary trailing zeros
+ * and appending the correct unit suffix based on meter type.
+ */
+private fun formatReadingValue(raw: String, meterType: String): String {
+    val numeric = raw.replace(",", ".").toDoubleOrNull()
+    if (numeric == null) return raw
+
+    val formatted = if (numeric == Math.floor(numeric) && !java.lang.Double.isInfinite(numeric)) {
+        numeric.toLong().toString()
+    } else {
+        val df = java.text.DecimalFormat("0.###")
+        df.format(numeric)
+    }
+
+    val unit = when {
+        meterType.contains("Su", ignoreCase = true) -> " m\u00B3"
+        meterType.contains("Isı", ignoreCase = true) -> " kWh"
+        else -> ""
+    }
+
+    return "$formatted$unit"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReadingsScreen(
@@ -151,7 +175,7 @@ fun ReadingsScreen(
                                 TableCell(reading.buildingName.ifBlank { "-" }, 80.dp, mono = true)
                                 // READING VALUE - the actual numeric reading (e.g., "150 kWh")
                                 TableCell(
-                                    text = reading.readingValue.ifBlank { "-" },
+                                    text = formatReadingValue(reading.readingValue, reading.meterType).ifBlank { "-" },
                                     width = 110.dp,
                                     mono = true
                                 )

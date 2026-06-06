@@ -418,6 +418,37 @@ fun FormatSelectionDialog(
 // GRID METER CARD (HARDWARE POLLING STATUS INTEGRATED, NO MANUAL BUTTONS)
 // =============================================================================
 @Composable
+/**
+ * Formats a reading value string by stripping unnecessary trailing zeros
+ * and appending the correct unit suffix based on meter type.
+ *
+ * - Water meters ("Su" in type) → " m³"
+ * - Heat meters ("Isı" in type) → " kWh"
+ * - Fallback: no unit
+ */
+private fun formatReadingValue(raw: String, meterType: String): String {
+    val numeric = raw.replace(",", ".").toDoubleOrNull()
+    if (numeric == null) return raw
+
+    // Strip trailing zeros: if whole number, show as integer; else keep up to 3 decimals trimmed
+    val formatted = if (numeric == Math.floor(numeric) && !java.lang.Double.isInfinite(numeric)) {
+        numeric.toLong().toString()
+    } else {
+        // Use DecimalFormat to avoid scientific notation, trim trailing zeros
+        val df = java.text.DecimalFormat("0.###")
+        df.format(numeric)
+    }
+
+    val unit = when {
+        meterType.contains("Su", ignoreCase = true) -> " m\u00B3"
+        meterType.contains("Isı", ignoreCase = true) -> " kWh"
+        else -> ""
+    }
+
+    return "$formatted$unit"
+}
+
+@Composable
 fun MeterGridCard(
     meter: Meter,
     readStatus: String? = null,
@@ -533,7 +564,7 @@ fun MeterGridCard(
             if (isReadingInProgress && readingValue != null && readStatus == "success") {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    "Endeks: $readingValue",
+                    "Endeks: ${formatReadingValue(readingValue, meter.meterType)}",
                     style = MaterialTheme.typography.bodySmall,
                     color = SyncSynced,
                     fontFamily = FontFamily.Monospace,
@@ -546,7 +577,7 @@ fun MeterGridCard(
                 if (!isReadingInProgress || readStatus != "success") {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        "Son: $reading",
+                        "Son: ${formatReadingValue(reading, meter.meterType)}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         fontFamily = FontFamily.Monospace
