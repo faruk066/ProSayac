@@ -1,6 +1,7 @@
 package com.prosayac.app.presentation.readings
 
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -85,7 +86,7 @@ fun ReadingsScreen(
                         containerColor = ProMaxTertiary,
                         contentColor = ProMaxOnTertiary
                     ) {
-                        Icon(Icons.Default.FileDownload, "Excel (.xlsx) Dışa Aktar")
+                        Icon(Icons.Default.FileDownload, "Excel (.xls) Dışa Aktar")
                     }
                     FloatingActionButton(
                         onClick = { /* Sync */ },
@@ -260,13 +261,18 @@ fun ReadingsScreen(
             confirmButton = { TextButton(onClick = { viewModel.dismissExportDone() }) { Text("Tamam") } },
             dismissButton = {
                 TextButton(onClick = {
-                    val intent = Intent(Intent.ACTION_SEND).apply {
-                        type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    try {
                         val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(exportPath))
-                        putExtra(Intent.EXTRA_STREAM, uri)
-                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        val intent = Intent(Intent.ACTION_SEND).apply {
+                            type = "application/vnd.ms-excel"
+                            putExtra(Intent.EXTRA_STREAM, uri)
+                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        }
+                        context.startActivity(Intent.createChooser(intent, "Paylaş"))
+                    } catch (e: Exception) {
+                        android.util.Log.e("ReadingsScreen", "Paylaşım başlatılamadı", e)
+                        Toast.makeText(context, "Paylaşım başlatılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
                     }
-                    context.startActivity(Intent.createChooser(intent, "Paylaş"))
                 }) { Text("Paylaş") }
             }
         )

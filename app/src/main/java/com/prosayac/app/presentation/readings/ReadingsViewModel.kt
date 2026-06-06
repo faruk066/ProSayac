@@ -11,12 +11,14 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apache.poi.ss.usermodel.BorderStyle
 import org.apache.poi.ss.usermodel.FillPatternType
 import org.apache.poi.ss.usermodel.HorizontalAlignment
 import org.apache.poi.ss.usermodel.IndexedColors
-import org.apache.poi.xssf.usermodel.XSSFWorkbook
+import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -72,154 +74,161 @@ class ReadingsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isExporting = true)
 
             try {
-                val readings = _uiState.value.readings
-                val exportDir = File(context.cacheDir, "exports")
-                exportDir.mkdirs()
+                val exportedFilePath = withContext(Dispatchers.IO) {
+                    val readings = _uiState.value.readings
+                    val exportDir = File(context.cacheDir, "exports")
+                    exportDir.mkdirs()
 
-                val fileName = "SayacPro_Okumalar.xlsx"
-                val file = File(exportDir, fileName)
+                    val fileName = "SayacPro_Okumalar.xls"
+                    val file = File(exportDir, fileName)
 
-                val workbook = XSSFWorkbook()
-                val sheet = workbook.createSheet("Okumalar")
+                    val workbook = HSSFWorkbook()
+                    val sheet = workbook.createSheet("Okumalar")
 
-                // ── Styles ──────────────────────────────────────────────
-                // Header style: light blue background, bold, centered, thin borders
-                val headerStyle = workbook.createCellStyle().apply {
-                    fillForegroundColor = IndexedColors.LIGHT_CORNFLOWER_BLUE.index
-                    fillPattern = FillPatternType.SOLID_FOREGROUND
-                    val font = workbook.createFont().apply {
-                        bold = true
-                        fontHeightInPoints = 11
-                    }
-                    setFont(font)
-                    alignment = HorizontalAlignment.CENTER
-                    setBorderTop(BorderStyle.THIN)
-                    setBorderBottom(BorderStyle.THIN)
-                    setBorderLeft(BorderStyle.THIN)
-                    setBorderRight(BorderStyle.THIN)
-                }
-
-                // Data cell style: thin borders, center alignment for date columns
-                val dataStyle = workbook.createCellStyle().apply {
-                    setBorderTop(BorderStyle.THIN)
-                    setBorderBottom(BorderStyle.THIN)
-                    setBorderLeft(BorderStyle.THIN)
-                    setBorderRight(BorderStyle.THIN)
-                }
-
-                // Number cell style: thin borders + right-aligned numeric
-                val numberStyle = workbook.createCellStyle().apply {
-                    setBorderTop(BorderStyle.THIN)
-                    setBorderBottom(BorderStyle.THIN)
-                    setBorderLeft(BorderStyle.THIN)
-                    setBorderRight(BorderStyle.THIN)
-                    alignment = HorizontalAlignment.RIGHT
-                }
-
-                // Date cell style: thin borders + center
-                val dateStyle = workbook.createCellStyle().apply {
-                    setBorderTop(BorderStyle.THIN)
-                    setBorderBottom(BorderStyle.THIN)
-                    setBorderLeft(BorderStyle.THIN)
-                    setBorderRight(BorderStyle.THIN)
-                    alignment = HorizontalAlignment.CENTER
-                }
-
-                // ── Header Row ──────────────────────────────────────────
-                val headerRow = sheet.createRow(0)
-                val headers = arrayOf(
-                    "Tarih / Saat",
-                    "Bina / Blok",
-                    "Sayaç No",
-                    "Sayaç Tipi",
-                    "Okunan Endeks",
-                    "Birim"
-                )
-                for ((i, h) in headers.withIndex()) {
-                    val cell = headerRow.createCell(i)
-                    cell.setCellValue(h)
-                    cell.cellStyle = headerStyle
-                }
-
-                // ── Data Rows ───────────────────────────────────────────
-                val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
-                for ((rowIdx, r) in readings.withIndex()) {
-                    val row = sheet.createRow(rowIdx + 1)
-
-                    // 1. Tarih / Saat
-                    val dateCell = row.createCell(0)
-                    dateCell.setCellValue(dateFormat.format(Date(r.readingDate)))
-                    dateCell.cellStyle = dateStyle
-
-                    // 2. Bina / Blok (buildingName + flatNumber combined)
-                    val buildingCell = row.createCell(1)
-                    val buildingText = buildString {
-                        append(r.buildingName.ifBlank { "" })
-                        if (r.flatNumber.isNotBlank()) {
-                            if (isNotEmpty()) append(" / ")
-                            append(r.flatNumber)
+                    // ── Styles ──────────────────────────────────────────────
+                    // Header style: light blue background, bold, centered, thin borders
+                    val headerStyle = workbook.createCellStyle().apply {
+                        fillForegroundColor = IndexedColors.LIGHT_CORNFLOWER_BLUE.index
+                        fillPattern = FillPatternType.SOLID_FOREGROUND
+                        val font = workbook.createFont().apply {
+                            bold = true
+                            fontHeightInPoints = 11
                         }
-                    }.ifBlank { "-" }
-                    buildingCell.setCellValue(buildingText)
-                    buildingCell.cellStyle = dataStyle
-
-                    // 3. Sayaç No
-                    val serialCell = row.createCell(2)
-                    serialCell.setCellValue(r.serialNumber.ifBlank { "-" })
-                    serialCell.cellStyle = dataStyle
-
-                    // 4. Sayaç Tipi
-                    val typeCell = row.createCell(3)
-                    typeCell.setCellValue(r.meterType)
-                    typeCell.cellStyle = dataStyle
-
-                    // 5. Okunan Endeks (NUMERIC - critical for Excel formulas)
-                    val valueCell = row.createCell(4)
-                    val numericValue = r.readingValue
-                        .replace(",", ".")
-                        .toDoubleOrNull()
-                    if (numericValue != null) {
-                        valueCell.setCellValue(numericValue)
-                    } else {
-                        valueCell.setCellValue(r.readingValue.ifBlank { "-" })
+                        setFont(font)
+                        alignment = HorizontalAlignment.CENTER
+                        setBorderTop(BorderStyle.THIN)
+                        setBorderBottom(BorderStyle.THIN)
+                        setBorderLeft(BorderStyle.THIN)
+                        setBorderRight(BorderStyle.THIN)
                     }
-                    valueCell.cellStyle = numberStyle
 
-                    // 6. Birim (m³ or kWh based on meter type)
-                    val unitCell = row.createCell(5)
-                    unitCell.setCellValue(
-                        when {
-                            r.meterType.contains("Su", ignoreCase = true) -> "m³"
-                            r.meterType.contains("Isı", ignoreCase = true) -> "kWh"
-                            else -> ""
-                        }
+                    // Data cell style: thin borders, center alignment for date columns
+                    val dataStyle = workbook.createCellStyle().apply {
+                        setBorderTop(BorderStyle.THIN)
+                        setBorderBottom(BorderStyle.THIN)
+                        setBorderLeft(BorderStyle.THIN)
+                        setBorderRight(BorderStyle.THIN)
+                    }
+
+                    // Number cell style: thin borders + right-aligned numeric
+                    val numberStyle = workbook.createCellStyle().apply {
+                        setBorderTop(BorderStyle.THIN)
+                        setBorderBottom(BorderStyle.THIN)
+                        setBorderLeft(BorderStyle.THIN)
+                        setBorderRight(BorderStyle.THIN)
+                        alignment = HorizontalAlignment.RIGHT
+                    }
+
+                    // Date cell style: thin borders + center
+                    val dateStyle = workbook.createCellStyle().apply {
+                        setBorderTop(BorderStyle.THIN)
+                        setBorderBottom(BorderStyle.THIN)
+                        setBorderLeft(BorderStyle.THIN)
+                        setBorderRight(BorderStyle.THIN)
+                        alignment = HorizontalAlignment.CENTER
+                    }
+
+                    // ── Header Row ──────────────────────────────────────────
+                    val headerRow = sheet.createRow(0)
+                    val headers = arrayOf(
+                        "Tarih / Saat",
+                        "Bina / Blok",
+                        "Sayaç No",
+                        "Sayaç Tipi",
+                        "Okunan Endeks",
+                        "Birim"
                     )
-                    unitCell.cellStyle = dataStyle
+                    for ((i, h) in headers.withIndex()) {
+                        val cell = headerRow.createCell(i)
+                        cell.setCellValue(h)
+                        cell.setCellStyle(headerStyle)
+                    }
+
+                    // ── Data Rows ───────────────────────────────────────────
+                    val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+                    for ((rowIdx, r) in readings.withIndex()) {
+                        val row = sheet.createRow(rowIdx + 1)
+
+                        // 1. Tarih / Saat
+                        val dateCell = row.createCell(0)
+                        dateCell.setCellValue(dateFormat.format(Date(r.readingDate)))
+                        dateCell.setCellStyle(dateStyle)
+
+                        // 2. Bina / Blok (buildingName + flatNumber combined)
+                        val buildingCell = row.createCell(1)
+                        val buildingText = buildString {
+                            append(r.buildingName.ifBlank { "" })
+                            if (r.flatNumber.isNotBlank()) {
+                                if (isNotEmpty()) append(" / ")
+                                append(r.flatNumber)
+                            }
+                        }.ifBlank { "-" }
+                        buildingCell.setCellValue(buildingText)
+                        buildingCell.setCellStyle(dataStyle)
+
+                        // 3. Sayaç No
+                        val serialCell = row.createCell(2)
+                        serialCell.setCellValue(r.serialNumber.ifBlank { "-" })
+                        serialCell.setCellStyle(dataStyle)
+
+                        // 4. Sayaç Tipi
+                        val typeCell = row.createCell(3)
+                        typeCell.setCellValue(r.meterType)
+                        typeCell.setCellStyle(dataStyle)
+
+                        // 5. Okunan Endeks (NUMERIC - critical for Excel formulas)
+                        val valueCell = row.createCell(4)
+                        val numericValue = r.readingValue
+                            .replace(",", ".")
+                            .toDoubleOrNull()
+                        if (numericValue != null) {
+                            valueCell.setCellValue(numericValue)
+                        } else {
+                            valueCell.setCellValue(r.readingValue.ifBlank { "-" })
+                        }
+                        valueCell.setCellStyle(numberStyle)
+
+                        // 6. Birim (m³ or kWh based on meter type)
+                        val unitCell = row.createCell(5)
+                        unitCell.setCellValue(
+                            when {
+                                r.meterType.contains("Su", ignoreCase = true) -> "m³"
+                                r.meterType.contains("Isı", ignoreCase = true) -> "kWh"
+                                else -> ""
+                            }
+                        )
+                        unitCell.setCellStyle(dataStyle)
+                    }
+
+                    // ── Auto-size columns ───────────────────────────────────
+                    for (i in 0 until 6) {
+                        sheet.autoSizeColumn(i)
+                        // Add a little extra padding so columns aren't too tight
+                        val currentWidth = sheet.getColumnWidth(i)
+                        sheet.setColumnWidth(i, (currentWidth + 1024).coerceAtMost(65280))
+                    }
+
+                    // ── Freeze header row ───────────────────────────────────
+                    sheet.createFreezePane(0, 1)
+
+                    // ── Write to file ───────────────────────────────────────
+                    FileOutputStream(file).use { fos ->
+                        workbook.write(fos)
+                    }
+                    workbook.close()
+
+                    // Return the file path from IO block
+                    file.absolutePath
                 }
 
-                // ── Auto-size columns ───────────────────────────────────
-                for (i in 0 until 6) {
-                    sheet.autoSizeColumn(i)
-                    // Add a little extra padding so columns aren't too tight
-                    val currentWidth = sheet.getColumnWidth(i)
-                    sheet.setColumnWidth(i, (currentWidth + 1024).coerceAtMost(65280))
-                }
-
-                // ── Freeze header row ───────────────────────────────────
-                sheet.createFreezePane(0, 1)
-
-                // ── Write to file ───────────────────────────────────────
-                FileOutputStream(file).use { fos ->
-                    workbook.write(fos)
-                }
-                workbook.close()
-
+                // ── Update UI on Main thread ────────────────────────────────
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
-                    exportPath = file.absolutePath,
+                    exportPath = exportedFilePath,
                     showExportDone = true
                 )
             } catch (e: Exception) {
+                android.util.Log.e("ReadingsViewModel", "Export error", e)
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
                     error = "Dışa aktarma sırasında hata oluştu"
