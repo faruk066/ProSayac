@@ -1,5 +1,6 @@
 package com.prosayac.app.util.serial
 
+import com.prosayac.app.domain.model.PollOutcome
 import com.prosayac.app.util.log.LoggerService
 import com.prosayac.app.util.log.LogTag
 
@@ -62,6 +63,38 @@ object MBusProtocolHandler {
             false
         }
         val rawHex = bytes.joinToString(" ") { "%02X".format(it) }
+
+        // ── M-BUS FRAME VALIDATION ──
+        // Validate checksum and stop byte before parsing
+        if (bytes.size >= 9) {
+            val lastByte = bytes[bytes.size - 1].toInt() and 0xFF
+            if (lastByte != 0x16) {
+                LoggerService.log(LogTag.WARN, "M-Bus çerçeve geçersiz: stop byte (0x16) bulunamadı, bulunan: %02X".format(lastByte))
+                return ParseResult(null, 0.0, 0.0, rawHex, false, "Geçersiz çerçeve (stop byte yok)")
+            }
+
+            // Checksum validation: sum bytes between the two 0x68 markers
+            if (bytes[0].toInt() and 0xFF == 0x68 && bytes.size >= 9) {
+                val lengthByte = bytes[1].toInt() and 0xFF
+                val expectedSize = lengthByte + 6
+
+                if (bytes.size >= expectedSize) {
+                    var checksumCalc = 0
+                    // Sum from C field (index 4) to last data byte (before checksum byte)
+                    for (i in 4 until (expectedSize - 2)) {
+                        checksumCalc = (checksumCalc + (bytes[i].toInt() and 0xFF)) and 0xFF
+                    }
+
+                    val checksumReceived = bytes[expectedSize - 2].toInt() and 0xFF
+                    if (checksumCalc != checksumReceived) {
+                        LoggerService.log(LogTag.WARN,
+                            "M-Bus checksum uyuşmazlığı: hesaplanan=%02X, alınan=%02X, ham=%s".format(
+                                checksumCalc, checksumReceived, rawHex))
+                        return ParseResult(null, 0.0, 0.0, rawHex, false, "Checksum hatası")
+                    }
+                }
+            }
+        }
 
         if (bytes.isEmpty()) {
             return ParseResult(null, 0.0, 0.0, rawHex, false, "Boş veri")
@@ -135,9 +168,24 @@ object MBusProtocolHandler {
                 // Decode value based on data type
                 var rawVal = 0.0
                 when (dataType) {
+                    0x01 -> rawVal = decodeInt8(valueBytes)         // 1-byte integer
+                    0x02 -> rawVal = decodeInt16(valueBytes)        // 2-byte integer
+                    0x03 -> rawVal = decodeInt24(valueBytes)        // 3-byte integer
                     0x04 -> rawVal = decodeInt32(valueBytes)        // 4-byte signed integer
-                    0x0C -> rawVal = decodeBcdIntForParse(valueBytes) // BCD encoded
-                    else -> continue
+                    0x06 -> rawVal = decodeInt48(valueBytes)        // 6-byte integer
+                    0x07 -> rawVal = decodeInt64(valueBytes)        // 8-byte integer
+                    0x09 -> rawVal = decodeBcd2(valueBytes)         // 2-digit BCD (1 byte)
+                    0x0A -> rawVal = decodeBcd4(valueBytes)         // 4-digit BCD (2 bytes)
+                    0x0B -> rawVal = decodeBcd6(valueBytes)         // 6-digit BCD (3 bytes)
+                    0x0C -> rawVal = decodeBcdIntForParse(valueBytes) // BCD encoded (existing)
+                    0x0D -> {
+                        LoggerService.log(LogTag.WARN, "DIF 0x0D (variable length) atlandı - index $i")
+                        continue  // Skip variable length gracefully
+                    }
+                    else -> {
+                        LoggerService.log(LogTag.WARN, "Bilinmeyen DIF tipi: %02X - index $i atlandı".format(dataType))
+                        continue
+                    }
                 }
 
                 val vifCode = vif and 0x7F
@@ -277,6 +325,112 @@ object MBusProtocolHandler {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // ADDITIONAL INT DECODERS (1, 2, 3, 6, 8 byte integers)
+    // ─────────────────────────────────────────────────────────────────────────
+    private fun decodeInt8(bytes: ByteArray): Double {
+        if (bytes.isEmpty()) return 0.0
+        var v = bytes[0].toInt()
+        // Sign extend if bit 7 is set
+        if ((v and 0x80) != 0) {
+            v = v or 0xFFFFFF00.toInt()
+        }
+        return v.toDouble()
+    }
+
+    private fun decodeInt16(bytes: ByteArray): Double {
+        if (bytes.size < 2) return 0.0
+        var v = (bytes[0].toInt() and 0xFF) or ((bytes[1].toInt() and 0xFF) shl 8)
+        // Sign extend if bit 15 is set
+        if ((v and 0x8000) != 0) {
+            v = v or 0xFFFF0000.toInt()
+        }
+        return v.toDouble()
+    }
+
+    private fun decodeInt24(bytes: ByteArray): Double {
+        if (bytes.size < 3) return 0.0
+        var v = (bytes[0].toInt() and 0xFF) or
+                ((bytes[1].toInt() and 0xFF) shl 8) or
+                ((bytes[2].toInt() and 0xFF) shl 16)
+        // Sign extend if bit 23 is set
+        if ((v and 0x800000) != 0) {
+            v = v or 0xFF000000.toInt()
+        }
+        return v.toDouble()
+    }
+
+    private fun decodeInt48(bytes: ByteArray): Double {
+        if (bytes.size < 6) return 0.0
+        var v = (bytes[0].toInt() and 0xFF).toLong() or
+                ((bytes[1].toInt() and 0xFF).toLong() shl 8) or
+                ((bytes[2].toInt() and 0xFF).toLong() shl 16) or
+                ((bytes[3].toInt() and 0xFF).toLong() shl 24) or
+                ((bytes[4].toInt() and 0xFF).toLong() shl 32) or
+                ((bytes[5].toInt() and 0xFF).toLong() shl 40)
+        // Sign extend if bit 47 is set
+        if ((v and 0x800000000000L) != 0L) {
+            v = v or -0x1000000000000L  // 0xFFFF000000000000 as negative
+        }
+        return v.toDouble()
+    }
+
+    private fun decodeInt64(bytes: ByteArray): Double {
+        if (bytes.size < 8) return 0.0
+        val v = (bytes[0].toInt() and 0xFF).toLong() or
+                ((bytes[1].toInt() and 0xFF).toLong() shl 8) or
+                ((bytes[2].toInt() and 0xFF).toLong() shl 16) or
+                ((bytes[3].toInt() and 0xFF).toLong() shl 24) or
+                ((bytes[4].toInt() and 0xFF).toLong() shl 32) or
+                ((bytes[5].toInt() and 0xFF).toLong() shl 40) or
+                ((bytes[6].toInt() and 0xFF).toLong() shl 48) or
+                ((bytes[7].toInt() and 0xFF).toLong() shl 56)
+        return v.toDouble()
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ADDITIONAL BCD DECODERS (2, 4, 6 digit BCD)
+    // ─────────────────────────────────────────────────────────────────────────
+    private fun decodeBcd2(bytes: ByteArray): Double {
+        if (bytes.isEmpty()) return 0.0
+        val b = bytes[0].toInt() and 0xFF
+        val low = b and 0x0F
+        val high = (b shr 4) and 0x0F
+        return (high * 10 + low).toDouble()
+    }
+
+    private fun decodeBcd4(bytes: ByteArray): Double {
+        if (bytes.size < 2) return 0.0
+        var res = 0.0
+        var multiplier = 1.0
+        for (i in 0 until 2) {
+            val b = bytes[i].toInt() and 0xFF
+            val low = b and 0x0F
+            val high = (b shr 4) and 0x0F
+            res += low * multiplier
+            multiplier *= 10
+            res += high * multiplier
+            multiplier *= 10
+        }
+        return res
+    }
+
+    private fun decodeBcd6(bytes: ByteArray): Double {
+        if (bytes.size < 3) return 0.0
+        var res = 0.0
+        var multiplier = 1.0
+        for (i in 0 until 3) {
+            val b = bytes[i].toInt() and 0xFF
+            val low = b and 0x0F
+            val high = (b shr 4) and 0x0F
+            res += low * multiplier
+            multiplier *= 10
+            res += high * multiplier
+            multiplier *= 10
+        }
+        return res
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // POW10 LOOKUP (1:1 port of MBusParser._pow10Lookup and _pow10)
     // ─────────────────────────────────────────────────────────────────────────
     private val pow10Lookup = doubleArrayOf(
@@ -345,52 +499,57 @@ object MBusProtocolHandler {
     suspend fun pollMeter(
         serialNumber: String,
         serialManager: MBusSerialManager
-    ): ResponseResult {
+    ): PollOutcome {
         LoggerService.log(LogTag.HARDWARE, "Sayaç sorgulama başlatıldı: $serialNumber")
 
         try {
             if (serialManager.connectionState.value != ConnectionState.CONNECTED) {
-                return ResponseResult(
-                    isValid = false,
-                    readingValue = null,
-                    rawHex = "",
-                    errorMessage = "M-Bus bağlı değil"
-                )
+                return PollOutcome.DeviceNotFound(null)
             }
 
             // ── AGGRESSIVE BUFFER PURGE before starting ──
-            // Ensures no stale bytes from previous cycles are present.
             serialManager.purgeAllBuffers()
 
             // Use the full Calmet sequence from sendReadRequest
-            // (which also calls purgeAllBuffers internally before the REQ_UD2)
-            serialManager.sendReadRequest(serialNumber)
+            try {
+                serialManager.sendReadRequest(serialNumber)
+            } catch (e: IllegalArgumentException) {
+                return PollOutcome.InvalidSerial(serialNumber, e.message ?: "Geçersiz format")
+            }
 
             // ── SMART FRAME ACCUMULATOR ──
-            // Hunts for 0x68, discards garbage (F9/E5/00), waits for
-            // L+6 bytes. Default 1500ms timeout.
+            val startTime = System.currentTimeMillis()
             val response = serialManager.waitForRspUdFrame(timeoutMs = 1500L)
+            val elapsed = System.currentTimeMillis() - startTime
 
             if (response == null) {
                 LoggerService.log(LogTag.WARN, "Sayaç [$serialNumber] 1500ms içinde Rsp_UD çerçevesi alınamadı")
-                return ResponseResult(
-                    isValid = false,
-                    readingValue = null,
-                    rawHex = "",
-                    errorMessage = "Cihaz Yanıt Vermedi (1500ms timeout)"
-                )
+                return PollOutcome.Timeout(serialNumber, elapsed)
             }
 
             // Parse the response
-            return parseRspUD(response)
+            val result = parseRspUD(response)
+
+            if (!result.isValid || result.readingValue == null) {
+                return PollOutcome.ProtocolError(result.meterId, result.errorMessage ?: "Parse hatası")
+            }
+
+            // Determine unit based on meter type
+            val isWaterMeter = if (response.size > 14) {
+                val medium = response[14].toInt() and 0xFF
+                medium == MEDIUM_WARM_WATER || medium == MEDIUM_COLD_WATER
+            } else {
+                false
+            }
+
+            val value = if (isWaterMeter) result.volume else result.energy
+            val unit = if (isWaterMeter) "m³" else "kWh"
+
+            return PollOutcome.Success(result.meterId ?: serialNumber, value, unit)
+
         } catch (e: Exception) {
             LoggerService.log(LogTag.ERROR, "Sayaç [$serialNumber] sorgulama hatası: ${e.message}")
-            return ResponseResult(
-                isValid = false,
-                readingValue = null,
-                rawHex = "",
-                errorMessage = "Sorgulama hatası: ${e.message}"
-            )
+            return PollOutcome.ProtocolError(null, "Sorgulama hatası: ${e.message}")
         }
     }
 }

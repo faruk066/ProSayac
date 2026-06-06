@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prosayac.app.domain.model.Meter
+import com.prosayac.app.domain.model.PollOutcome
 import com.prosayac.app.domain.model.Reading
 import com.prosayac.app.domain.repository.MeterRepository
 import com.prosayac.app.util.excel.ExcelFormat
@@ -251,60 +252,64 @@ class MetersViewModel @Inject constructor(
                     "Sayaç [$index/${unreadMeters.size}] sorgulanıyor: ${meter.serialNumber}"
                 )
 
-                val result = MBusProtocolHandler.pollMeter(
+                val outcome = MBusProtocolHandler.pollMeter(
                     serialNumber = meter.serialNumber,
                     serialManager = serialManager
                 )
 
-                // ── STRICT ID MATCHING ──
-                // Find the meter by the parsed meterId from the frame, NOT by loop index.
-                // This prevents values from bleeding across meters due to async races.
-                val matchedMeter = if (result.meterId != null) {
-                    _uiState.value.meters.firstOrNull { it.serialNumber == result.meterId }
-                } else {
-                    null
-                }
+                when (outcome) {
+                    is PollOutcome.Success -> {
+                        val matchedMeter = _uiState.value.meters.firstOrNull { it.serialNumber == outcome.meterId }
+                        val targetMeterId = matchedMeter?.id ?: meter.id
+                        val displaySerial = matchedMeter?.serialNumber ?: meter.serialNumber
 
-                // Fallback: if no parsed meterId, trust the loop's meter
-                val targetMeterId = matchedMeter?.id ?: meter.id
-                val displaySerial = matchedMeter?.serialNumber ?: meter.serialNumber
-
-                when {
-                    result.readingValue != null -> {
-                        // ── DYNAMIC VALUE SELECTION BASED ON METER TYPE ──
-                        // Water meters report Volume (m³), NOT thermal energy.
-                        // The medium-byte heuristic in parseRspUD can miss certain
-                        // water meters, so we trust the database meterType instead.
+                        // Use database meter type for value selection
                         val meterForType = matchedMeter ?: meter
                         val selectedValue = if (meterForType.meterType == METER_TYPE_WATER) {
-                            String.format("%.3f", result.volume)
+                            String.format("%.3f", outcome.value)
                         } else {
-                            String.format("%.3f", result.energy)
+                            String.format("%.3f", outcome.value)
                         }
 
                         LoggerService.log(
                             LogTag.INFO,
-                            "OKUNDU: $displaySerial = $selectedValue (type=${meterForType.meterType}, energy=${result.energy}, volume=${result.volume}, frameId=${result.meterId})"
+                            "OKUNDU: $displaySerial = $selectedValue ${outcome.unit} (type=${meterForType.meterType})"
                         )
                         onMeterReadingReceived(targetMeterId, selectedValue)
                         updateMeterStatus(targetMeterId, "success")
                         updateMeterReadingValue(targetMeterId, selectedValue)
                         readCount++
                     }
-                    result.errorMessage != null && result.errorMessage.contains("Cihaz Yanıt Vermedi", ignoreCase = true) -> {
+                    is PollOutcome.Timeout -> {
                         LoggerService.log(
                             LogTag.WARN,
-                            "ZAMAN AŞIMI: $displaySerial - 5 saniyede yanıt gelmedi"
+                            "ZAMAN AŞIMI: ${outcome.meterId ?: meter.serialNumber} - ${outcome.durationMs}ms içinde yanıt gelmedi"
                         )
-                        updateMeterStatus(targetMeterId, "timeout")
+                        updateMeterStatus(meter.id, "timeout")
                         timeoutCount++
                     }
-                    else -> {
+                    is PollOutcome.ProtocolError -> {
                         LoggerService.log(
                             LogTag.ERROR,
-                            "HATA: $displaySerial - ${result.errorMessage ?: "bilinmeyen"}"
+                            "PROTOKOL HATASI: ${outcome.meterId ?: meter.serialNumber} - ${outcome.message}"
                         )
-                        updateMeterStatus(targetMeterId, "error")
+                        updateMeterStatus(meter.id, "error")
+                        errorCount++
+                    }
+                    is PollOutcome.InvalidSerial -> {
+                        LoggerService.log(
+                            LogTag.ERROR,
+                            "GEÇERSİZ SERİ NO: ${outcome.serial} - ${outcome.reason}"
+                        )
+                        updateMeterStatus(meter.id, "error")
+                        errorCount++
+                    }
+                    is PollOutcome.DeviceNotFound -> {
+                        LoggerService.log(
+                            LogTag.ERROR,
+                            "CİHAZ BULUNAMADI: ${meter.serialNumber}"
+                        )
+                        updateMeterStatus(meter.id, "error")
                         errorCount++
                     }
                 }

@@ -41,7 +41,6 @@ class MBusSerialManager @Inject constructor(
     val receivedData = _receivedData
 
     private var permissionIntent: PendingIntent? = null
-    internal var cleanupCalled = false
     private var receiverRegistered = false
 
     // ── Echo Cancellation (1:1 port from MBusService.dart) ──
@@ -50,14 +49,20 @@ class MBusSerialManager @Inject constructor(
 
     // Raw response callback used by waitForRawResponse()
     private val rawBuffer = mutableListOf<Byte>()
+    @Volatile
     private var rawResponseCallback: ((ByteArray) -> Unit)? = null
 
     // ── Smart Frame Accumulator (persistent callback — NOT single-shot) ──
     // Used by waitForRspUdFrame() to scavenge for 0x68 and accumulate L+6 bytes.
+    @Volatile
     private var accumulatorCallback: ((ByteArray) -> Unit)? = null
 
     // E5 detection callback
+    @Volatile
     private var e5Callback: (() -> Unit)? = null
+
+    // Pending config used for permission retry
+    private var pendingConfig: SerialConfig? = null
 
     private var usbReceiver: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -88,8 +93,6 @@ class MBusSerialManager @Inject constructor(
     }
 
     fun cleanup() {
-        if (cleanupCalled) return
-        cleanupCalled = true
         try {
             ioManager?.stop()
             ioManager = null
@@ -100,6 +103,18 @@ class MBusSerialManager @Inject constructor(
             receiverRegistered = false
             LoggerService.log(LogTag.INFO, "M-Bus yöneticisi temizlendi")
         } catch (_: Exception) {
+        }
+    }
+
+    fun reset() {
+        try {
+            // Re-register receiver if needed
+            if (!receiverRegistered) {
+                registerUsbReceiver()
+            }
+            LoggerService.log(LogTag.INFO, "M-Bus yöneticisi sıfırlandı")
+        } catch (e: Exception) {
+            LoggerService.log(LogTag.WARN, "Reset hatası: ${e.message}")
         }
     }
 
@@ -166,6 +181,7 @@ class MBusSerialManager @Inject constructor(
 
             if (!usbManager.hasPermission(device)) {
                 LoggerService.log(LogTag.HARDWARE, "USB izni isteniyor...")
+                pendingConfig = config  // Cache config for retry
                 usbManager.requestPermission(device, permissionIntent)
                 return
             }
@@ -214,9 +230,12 @@ class MBusSerialManager @Inject constructor(
     fun onPermissionGranted(device: UsbDevice, granted: Boolean) {
         if (granted) {
             LoggerService.log(LogTag.INFO, "USB izni verildi, bağlantı yeniden deneniyor")
-            connect()
+            val config = pendingConfig ?: SerialConfig()
+            pendingConfig = null
+            connect(config)
         } else {
             LoggerService.log(LogTag.WARN, "USB izni reddedildi")
+            pendingConfig = null
             _connectionState.value = ConnectionState.DISCONNECTED
         }
     }
@@ -228,6 +247,7 @@ class MBusSerialManager @Inject constructor(
             ioManager = null
             serialPort?.close()
             serialPort = null
+            pendingConfig = null  // Clear cached config
         } catch (e: Exception) {
             LoggerService.log(LogTag.WARN, "Bağlantı kesme hatası: ${e.message}")
         } finally {
@@ -364,12 +384,18 @@ class MBusSerialManager @Inject constructor(
     private suspend fun waitForE5(timeoutMs: Long): Boolean {
         return withTimeoutOrNull(timeoutMs) {
             suspendCancellableCoroutine<Boolean> { cont ->
-                e5Callback = {
-                    if (cont.isActive) {
-                        cont.resume(true)
+                synchronized(dataBuffer) {
+                    e5Callback = {
+                        if (cont.isActive) {
+                            cont.resume(true)
+                        }
                     }
                 }
-                cont.invokeOnCancellation { e5Callback = null }
+                cont.invokeOnCancellation {
+                    synchronized(dataBuffer) {
+                        e5Callback = null
+                    }
+                }
             }
         } ?: false
     }
@@ -452,7 +478,8 @@ class MBusSerialManager @Inject constructor(
                 val accumulator = mutableListOf<Byte>()
                 var targetSize: Int? = null  // L + 6, set once we have the length byte
 
-                accumulatorCallback = { cleanData ->
+                synchronized(dataBuffer) {
+                    accumulatorCallback = { cleanData ->
                     for (b in cleanData) {
                         val ub = b.toInt() and 0xFF
 
@@ -522,10 +549,13 @@ class MBusSerialManager @Inject constructor(
                         }
                     }
 
+                    }
                 }
 
                 cont.invokeOnCancellation {
-                    accumulatorCallback = null
+                    synchronized(dataBuffer) {
+                        accumulatorCallback = null
+                    }
                 }
             }
         }

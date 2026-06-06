@@ -85,8 +85,13 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
+    override fun onStart() {
+        super.onStart()
+        serialManager.reset()
+    }
+
+    override fun onStop() {
+        super.onStop()
         serialManager.cleanup()
     }
 }
