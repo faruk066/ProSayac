@@ -1,4 +1,4 @@
-#Sun Jun 07 00:48:59 TRT 2026
+#Sun Jun 07 00:55:32 TRT 2026
 path.4=12/classes.dex
 path.3=11/classes.dex
 path.2=10/classes.dex
@@ -26,6 +26,7 @@ renamed.16=classes17.dex
 path.18=classes6.dex
 renamed.8=classes9.dex
 renamed.15=classes16.dex
+path.19=14/classes.dex
 renamed.14=classes15.dex
 renamed.13=classes14.dex
 renamed.12=classes13.dex
@@ -35,6 +36,7 @@ base.17=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\inter
 base.16=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes4.dex
 base.15=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes3.dex
 base.14=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
+base.19=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\14\\classes.dex
 base.18=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes6.dex
 renamed.3=classes4.dex
 path.12=7/classes.dex
@@ -52,6 +54,7 @@ renamed.5=classes6.dex
 path.14=classes2.dex
 renamed.4=classes5.dex
 path.15=classes3.dex
+renamed.19=classes20.dex
 base.13=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\9\\classes.dex
 base.12=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\7\\classes.dex
 base.11=C\:\\Users\\UnknownBoy\\Desktop\\projelerim\\ProSayac\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\6\\classes.dex

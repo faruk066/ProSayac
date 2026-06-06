@@ -73,6 +73,11 @@ android {
             excludes += "META-INF/versions/**"
             excludes += "org/apache/logging/log4j/**"
             excludes += "org/apache/commons/logging/**"
+            // Log4j config files
+            excludes += "log4j.properties"
+            excludes += "log4j2.properties"
+            excludes += "log4j2.xml"
+            excludes += "log4j2-test.xml"
         }
     }
 
