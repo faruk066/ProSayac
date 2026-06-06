@@ -66,18 +66,10 @@ android {
             excludes += "/META-INF/*.SF"
             excludes += "/META-INF/*.DSA"
             excludes += "/META-INF/*.RSA"
-            // Apache POI exclusions
             excludes += "/META-INF/versions/9/module-info.class"
             excludes += "/META-INF/maven/**"
             excludes += "/META-INF/proguard/**"
             excludes += "META-INF/versions/**"
-            excludes += "org/apache/logging/log4j/**"
-            excludes += "org/apache/commons/logging/**"
-            // Log4j config files
-            excludes += "log4j.properties"
-            excludes += "log4j2.properties"
-            excludes += "log4j2.xml"
-            excludes += "log4j2-test.xml"
         }
     }
 
@@ -118,16 +110,15 @@ dependencies {
 
     implementation("com.github.mik3y:usb-serial-for-android:3.7.0")
 
+    // POI kept for XSSFWorkbook export (.xlsx writing works on Android)
+    // Reading .xlsx uses native parser (see ExcelParser.kt) - no NoClassDefFoundError!
     implementation("org.apache.poi:poi:5.2.5") {
-        exclude(group = "org.apache.logging.log4j", module = "log4j-api")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-core")
-        exclude(group = "commons-logging", module = "commons-logging")
+        exclude(group = "org.apache.logging.log4j")
+        exclude(group = "commons-logging")
     }
     implementation("org.apache.poi:poi-ooxml:5.2.5") {
-        exclude(group = "org.apache.logging.log4j", module = "log4j-api")
-        exclude(group = "org.apache.logging.log4j", module = "log4j-core")
-        exclude(group = "commons-logging", module = "commons-logging")
-        exclude(group = "org.junit.vintage", module = "junit-vintage-engine")
+        exclude(group = "org.apache.logging.log4j")
+        exclude(group = "commons-logging")
     }
 
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")

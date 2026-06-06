@@ -20,16 +20,16 @@ import com.prosayac.app.util.serial.MBusProtocolHandler
 import com.prosayac.app.util.serial.MBusSerialManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import org.apache.poi.ss.usermodel.Row
-import org.apache.poi.ss.usermodel.WorkbookFactory
 import javax.inject.Inject
 
 data class MetersUiState(
@@ -122,7 +122,9 @@ class MetersViewModel @Inject constructor(
             )
 
             try {
-                val result = excelParser.parse(context, uri, buildingName)
+                val result = withContext(Dispatchers.IO) {
+                    excelParser.parse(context, uri, buildingName)
+                }
 
                 if (result.ambiguousFormats.isNotEmpty()) {
                     _uiState.value = _uiState.value.copy(
@@ -137,7 +139,9 @@ class MetersViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(importProgress = "Veriler kaydediliyor...")
 
                 LoggerService.log(LogTag.INFO, "Atomik içe aktarma başlatılıyor (${result.meters.size} sayaç)")
-                meterRepository.importMetersAtomic(result.meters)
+                withContext(Dispatchers.IO) {
+                    meterRepository.importMetersAtomic(result.meters)
+                }
 
                 _uiState.value = _uiState.value.copy(
                     isImporting = false,
@@ -152,12 +156,12 @@ class MetersViewModel @Inject constructor(
                 )
                 loadMeters()
             } catch (e: Exception) {
-                LoggerService.log(LogTag.ERROR, "İçe aktarma hatası: ${e.message}")
+                LoggerService.log(LogTag.ERROR, "İçe aktarma CRASH: ${e.stackTraceToString()}")
                 _uiState.value = _uiState.value.copy(
                     isImporting = false,
                     importProgress = "",
                     pendingImportUri = null,
-                    error = "İçe aktarma sırasında hata: ${e.message}"
+                    error = "İçe aktarma sırasında hata: ${e.message ?: "bilinmeyen hata"}"
                 )
             }
         }
