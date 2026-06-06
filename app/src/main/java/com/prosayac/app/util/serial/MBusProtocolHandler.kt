@@ -55,8 +55,8 @@ object MBusProtocolHandler {
      * @return ParseResult with extracted meter ID, energy, and volume values
      */
     fun parseData(bytes: ByteArray): ParseResult {
-        val isWaterMeter = if (bytes.size > 6) {
-            val medium = bytes[6].toInt() and 0xFF
+        val isWaterMeter = if (bytes.size > 14) {
+            val medium = bytes[14].toInt() and 0xFF  // Medium is at byte 14, NOT byte 6 (which is CI)
             medium == MEDIUM_WARM_WATER || medium == MEDIUM_COLD_WATER
         } else {
             false
@@ -305,8 +305,8 @@ object MBusProtocolHandler {
 
         val result = parseData(bytes)
 
-        val isWaterMeter = if (bytes.size > 6) {
-            val medium = bytes[6].toInt() and 0xFF
+        val isWaterMeter = if (bytes.size > 14) {
+            val medium = bytes[14].toInt() and 0xFF
             medium == MEDIUM_WARM_WATER || medium == MEDIUM_COLD_WATER
         } else {
             false

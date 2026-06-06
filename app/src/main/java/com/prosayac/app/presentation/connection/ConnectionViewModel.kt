@@ -6,10 +6,12 @@ import com.prosayac.app.util.serial.ConnectionState
 import com.prosayac.app.util.serial.MBusSerialManager
 import com.prosayac.app.util.serial.SerialConfig
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class ConnectionUiState(
@@ -40,9 +42,11 @@ class ConnectionViewModel @Inject constructor(
     fun connect(baudRate: Int = 2400) {
         _uiState.value = _uiState.value.copy(baudRate = baudRate)
         viewModelScope.launch {
-            serialManager.connect(
-                SerialConfig(baudRate = baudRate)
-            )
+            withContext(Dispatchers.IO) {
+                serialManager.connect(
+                    SerialConfig(baudRate = baudRate)
+                )
+            }
         }
     }
 

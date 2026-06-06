@@ -279,14 +279,32 @@ class MBusSerialManager @Inject constructor(
         }
         e5Callback = null
 
-        if (!targetSerial.isNullOrEmpty() && targetSerial.length >= 8) {
+        if (!targetSerial.isNullOrEmpty()) {
+            // ── Normalize and validate serial number ──
+            val normalized = targetSerial.trim().replace(Regex("[^0-9A-Fa-f]"), "")
+            if (normalized.length < 8) {
+                throw IllegalArgumentException("Geçersiz seri numarası: $targetSerial (en az 8 hex karakter gerekli)")
+            }
+
+            // Left-pad to 8 hex characters if needed
+            val paddedSerial = normalized.padStart(8, '0').takeLast(8)
+
+            // Validate hex format
+            try {
+                paddedSerial.toLong(16)
+            } catch (e: NumberFormatException) {
+                throw IllegalArgumentException("Geçersiz hex seri numarası: $targetSerial")
+            }
+
             // ── 5-Adımlı Uyandırma ve Bekleme Zinciri (Calmet) ──
 
             // Parse serial number: b1,b2,b3,b4 = BCD reversed serial
-            val b1 = targetSerial.substring(6, 8).toInt(16)
-            val b2 = targetSerial.substring(4, 6).toInt(16)
-            val b3 = targetSerial.substring(2, 4).toInt(16)
-            val b4 = targetSerial.substring(0, 2).toInt(16)
+            val b1 = paddedSerial.substring(6, 8).toInt(16)
+            val b2 = paddedSerial.substring(4, 6).toInt(16)
+            val b3 = paddedSerial.substring(2, 4).toInt(16)
+            val b4 = paddedSerial.substring(0, 2).toInt(16)
+
+            LoggerService.log(LogTag.HARDWARE, "Seri normalize edildi: $targetSerial → $paddedSerial")
 
             // Step A (Ping)
             write(byteArrayOf(0x10.toByte(), 0x40.toByte(), 0xFE.toByte(), 0x3E.toByte(), 0x16.toByte()))

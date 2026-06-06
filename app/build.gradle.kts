@@ -106,8 +106,13 @@ dependencies {
 
     implementation("com.github.mik3y:usb-serial-for-android:3.7.0")
 
-    implementation("org.apache.poi:poi:5.2.5")
-    implementation("org.apache.poi:poi-ooxml:5.2.5")
+    implementation("org.apache.poi:poi:5.2.5") {
+        exclude(group = "org.apache.logging.log4j")
+    }
+    implementation("org.apache.poi:poi-ooxml:5.2.5") {
+        exclude(group = "org.apache.logging.log4j")
+        exclude(group = "org.apache.xmlbeans")
+    }
 
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation("com.patrykandpatrick.vico:core:1.13.1")

@@ -15,8 +15,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.poi.ss.usermodel.BorderStyle
+import org.apache.poi.ss.usermodel.FillPatternType
 import org.apache.poi.ss.usermodel.HorizontalAlignment
-import org.apache.poi.hssf.usermodel.HSSFWorkbook
+import org.apache.poi.ss.usermodel.IndexedColors
+import org.apache.poi.xssf.usermodel.XSSFWorkbook
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -77,14 +79,15 @@ class ReadingsViewModel @Inject constructor(
                     val exportDir = File(context.cacheDir, "exports")
                     exportDir.mkdirs()
 
-                    val fileName = "SayacPro_Okumalar.xls"
+                    val fileName = "SayacPro_Okumalar.xlsx"
                     val file = File(exportDir, fileName)
+                    val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
 
-                    val workbook = HSSFWorkbook()
+                    val workbook = XSSFWorkbook()
                     val sheet = workbook.createSheet("Okumalar")
 
                     // ── Styles ──────────────────────────────────────────────
-                    // Header style: bold, centered, thin borders (no AWT colors)
+                    // Header style: bold, centered, thin borders, grey background
                     val headerStyle = workbook.createCellStyle().apply {
                         val font = workbook.createFont().apply {
                             bold = true
@@ -96,6 +99,8 @@ class ReadingsViewModel @Inject constructor(
                         setBorderBottom(BorderStyle.THIN)
                         setBorderLeft(BorderStyle.THIN)
                         setBorderRight(BorderStyle.THIN)
+                        fillForegroundColor = IndexedColors.GREY_25_PERCENT.index
+                        fillPattern = FillPatternType.SOLID_FOREGROUND
                     }
 
                     // Data cell style: thin borders, center alignment for date columns
@@ -141,7 +146,6 @@ class ReadingsViewModel @Inject constructor(
                     }
 
                     // ── Data Rows ───────────────────────────────────────────
-                    val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
                     for ((rowIdx, r) in readings.withIndex()) {
                         val row = sheet.createRow(rowIdx + 1)
 
@@ -196,12 +200,10 @@ class ReadingsViewModel @Inject constructor(
                         unitCell.setCellStyle(dataStyle)
                     }
 
-                    // ── Auto-size columns ───────────────────────────────────
+                    // ── Set column widths ───────────────────────────────────
+                    val columnWidths = intArrayOf(5500, 6000, 4500, 4500, 4500, 3000)
                     for (i in 0 until 6) {
-                        sheet.autoSizeColumn(i)
-                        // Add a little extra padding so columns aren't too tight
-                        val currentWidth = sheet.getColumnWidth(i)
-                        sheet.setColumnWidth(i, (currentWidth + 1024).coerceAtMost(65280))
+                        sheet.setColumnWidth(i, columnWidths[i])
                     }
 
                     // ── Freeze header row ───────────────────────────────────
@@ -227,7 +229,7 @@ class ReadingsViewModel @Inject constructor(
                 android.util.Log.e("ReadingsViewModel", "Export error", e)
                 _uiState.value = _uiState.value.copy(
                     isExporting = false,
-                    error = "Dışa aktarma sırasında hata oluştu"
+                    error = "Dışa aktarma sırasında hata oluştu: ${e.message}"
                 )
             }
         }

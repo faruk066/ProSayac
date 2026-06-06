@@ -80,7 +80,7 @@ class ExcelParser {
                 val matchingFormats = detectFormats(headerRow)
 
                 if (matchingFormats.isEmpty()) {
-                    val foundHeaders = (0 until headerRow.physicalNumberOfCells)
+                    val foundHeaders = (0 until headerRow.lastCellNum)
                         .mapNotNull { i ->
                             val c = headerRow.getCell(i)
                             if (c != null) safeGetCellRaw(c)?.trim() else null
@@ -163,7 +163,7 @@ class ExcelParser {
      * supported templates that match. Returns an empty list only when none match.
      */
     internal fun detectFormats(headerRow: Row): List<ExcelFormat> {
-        val headers = (0 until headerRow.physicalNumberOfCells)
+        val headers = (0 until headerRow.lastCellNum)
             .mapNotNull { i ->
                 val c = headerRow.getCell(i) ?: return@mapNotNull null
                 normalizeHeader(safeGetCellRaw(c)?.trim() ?: return@mapNotNull null)
@@ -233,7 +233,7 @@ class ExcelParser {
         var serialCol = -1
         var typeCol = -1
 
-        for (i in 0 until headerRow.physicalNumberOfCells) {
+        for (i in 0 until headerRow.lastCellNum) {
             val c = headerRow.getCell(i) ?: continue
             val h = safeGetCellRaw(c)?.trim()?.uppercase() ?: continue
             when {
@@ -248,14 +248,14 @@ class ExcelParser {
             return ExcelParseResult(emptyList(), errors, 0, 0)
         }
 
-        for (rowIndex in 1 until sheet.physicalNumberOfRows) {
+        for (rowIndex in 1..sheet.lastRowNum) {
             val row = sheet.getRow(rowIndex) ?: continue
             if (isRowCompletelyEmpty(row)) continue
 
             totalRows++
 
             try {
-                val serial = safeGetCell(row, serialCol)
+                val serial = safeGetCellAsText(row, serialCol)
                 if (serial.isBlank()) continue  // silently skip
 
                 val typeCode = safeGetCellAsInt(row, typeCol)
@@ -319,7 +319,7 @@ class ExcelParser {
         var serialCol = -1
         var typeCol = -1
 
-        for (i in 0 until headerRow.physicalNumberOfCells) {
+        for (i in 0 until headerRow.lastCellNum) {
             val c = headerRow.getCell(i) ?: continue
             val h = safeGetCellRaw(c)?.trim()?.uppercase() ?: continue
             when {
@@ -334,14 +334,14 @@ class ExcelParser {
             return ExcelParseResult(emptyList(), errors, 0, 0)
         }
 
-        for (rowIndex in 1 until sheet.physicalNumberOfRows) {
+        for (rowIndex in 1..sheet.lastRowNum) {
             val row = sheet.getRow(rowIndex) ?: continue
             if (isRowCompletelyEmpty(row)) continue
 
             totalRows++
 
             try {
-                val serial = safeGetCell(row, serialCol)
+                val serial = safeGetCellAsText(row, serialCol)
                 if (serial.isBlank()) continue  // silently skip
 
                 val typeCode = safeGetCellAsInt(row, typeCol)
@@ -407,7 +407,7 @@ class ExcelParser {
         var heatSerialCol = -1
         var waterSerialCol = -1
 
-        for (i in 0 until headerRow.physicalNumberOfCells) {
+        for (i in 0 until headerRow.lastCellNum) {
             val c = headerRow.getCell(i) ?: continue
             val h = safeGetCellRaw(c)?.trim()?.uppercase() ?: continue
             when {
@@ -427,7 +427,7 @@ class ExcelParser {
             return ExcelParseResult(emptyList(), errors, 0, 0)
         }
 
-        for (rowIndex in 1 until sheet.physicalNumberOfRows) {
+        for (rowIndex in 1..sheet.lastRowNum) {
             val row = sheet.getRow(rowIndex) ?: continue
             if (isRowCompletelyEmpty(row)) continue
 
@@ -439,7 +439,7 @@ class ExcelParser {
 
                 // Heat meter (Isı Sayacı)
                 if (heatSerialCol >= 0) {
-                    val heatSerial = safeGetCell(row, heatSerialCol)
+                    val heatSerial = safeGetCellAsText(row, heatSerialCol)
                     if (heatSerial.isNotBlank()) {
                         meters.add(
                             Meter(
@@ -456,7 +456,7 @@ class ExcelParser {
 
                 // Hot water meter (Sıcak Su Sayacı)
                 if (waterSerialCol >= 0) {
-                    val waterSerial = safeGetCell(row, waterSerialCol)
+                    val waterSerial = safeGetCellAsText(row, waterSerialCol)
                     if (waterSerial.isNotBlank()) {
                         meters.add(
                             Meter(
@@ -633,7 +633,7 @@ class ExcelParser {
     // =========================================================================
 
     private fun isRowCompletelyEmpty(row: Row): Boolean {
-        for (i in 0 until row.physicalNumberOfCells) {
+        for (i in 0 until row.lastCellNum) {
             val cell = row.getCell(i)
             if (cell != null && cell.cellType != CellType.BLANK) {
                 val v = safeGetCellRaw(cell)
@@ -641,5 +641,52 @@ class ExcelParser {
             }
         }
         return true
+    }
+
+    /** Returns the text value of a cell, preserving leading zeros for serial numbers. */
+    private fun safeGetCellAsText(row: Row, cellIndex: Int): String {
+        if (cellIndex < 0) return ""
+        val cell = row.getCell(cellIndex) ?: return ""
+        return try {
+            when (cell.cellType) {
+                CellType.STRING -> cell.stringCellValue.trim()
+                CellType.NUMERIC -> {
+                    // Dates stored as numbers → return empty
+                    if (org.apache.poi.ss.usermodel.DateUtil.isCellDateFormatted(cell)) {
+                        return ""
+                    }
+                    // Force text formatting to preserve leading zeros
+                    val numVal = cell.numericCellValue
+                    if (numVal == numVal.toLong().toDouble()) {
+                        numVal.toLong().toString()
+                    } else {
+                        numVal.toString()
+                    }
+                }
+                CellType.FORMULA -> {
+                    try {
+                        val eval = cell.sheet.workbook.creationHelper.createFormulaEvaluator()
+                        val result = eval.evaluate(cell)
+                        when (result.cellType) {
+                            CellType.STRING -> result.stringValue?.trim() ?: ""
+                            CellType.NUMERIC -> {
+                                val numVal = result.numberValue
+                                if (numVal == numVal.toLong().toDouble()) {
+                                    numVal.toLong().toString()
+                                } else {
+                                    numVal.toString()
+                                }
+                            }
+                            else -> ""
+                        }
+                    } catch (_: Exception) {
+                        cell.stringCellValue?.trim() ?: ""
+                    }
+                }
+                else -> cell.toString().trim()
+            }
+        } catch (_: Exception) {
+            ""
+        }
     }
 }

@@ -8,6 +8,7 @@
 
 # Apache POI
 -keep class org.apache.poi.** { *; }
+-keepclassmembers class org.apache.poi.** { *; }
 -dontwarn org.apache.poi.**
 -dontwarn org.openxmlformats.schemas.**
 -dontwarn org.etsi.uri.**
@@ -18,8 +19,12 @@
 -dontwarn org.osgi.**
 -dontwarn aQute.bnd.**
 -dontwarn java.awt.**
--dontwarn org.apache.logging.log4j.**
--dontwarn org.apache.commons.logging.**
+
+# Suppress missing java.awt.Color and related classes (AWT not available on Android)
+-dontwarn java.awt.Color
+-dontwarn java.awt.**
+-dontwarn javax.swing.**
+-dontwarn com.sun.**
 
 # USB Serial
 -keep class com.hoho.android.usbserial.** { *; }
