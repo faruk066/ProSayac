@@ -15,9 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.poi.ss.usermodel.BorderStyle
-import org.apache.poi.ss.usermodel.FillPatternType
 import org.apache.poi.ss.usermodel.HorizontalAlignment
-import org.apache.poi.ss.usermodel.IndexedColors
 import org.apache.poi.hssf.usermodel.HSSFWorkbook
 import java.io.File
 import java.io.FileOutputStream
@@ -86,10 +84,8 @@ class ReadingsViewModel @Inject constructor(
                     val sheet = workbook.createSheet("Okumalar")
 
                     // ── Styles ──────────────────────────────────────────────
-                    // Header style: light blue background, bold, centered, thin borders
+                    // Header style: bold, centered, thin borders (no AWT colors)
                     val headerStyle = workbook.createCellStyle().apply {
-                        fillForegroundColor = IndexedColors.LIGHT_CORNFLOWER_BLUE.index
-                        fillPattern = FillPatternType.SOLID_FOREGROUND
                         val font = workbook.createFont().apply {
                             bold = true
                             fontHeightInPoints = 11
