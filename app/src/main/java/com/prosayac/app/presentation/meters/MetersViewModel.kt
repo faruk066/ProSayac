@@ -269,15 +269,17 @@ class MetersViewModel @Inject constructor(
 
                         // Use database meter type for value selection
                         val meterForType = matchedMeter ?: meter
-                        val selectedValue = if (meterForType.meterType == METER_TYPE_WATER) {
-                            String.format("%.3f", outcome.value)
+                        // Water meters (containing "Su") use volume, heat meters (containing "Isı") use energy
+                        val selectedValue = if (meterForType.meterType.contains("Su")) {
+                            String.format("%.3f", outcome.volume)
                         } else {
-                            String.format("%.3f", outcome.value)
+                            String.format("%.3f", outcome.energy)
                         }
+                        val selectedUnit = if (meterForType.meterType.contains("Su")) "m³" else "kWh"
 
                         LoggerService.log(
                             LogTag.INFO,
-                            "OKUNDU: $displaySerial = $selectedValue ${outcome.unit} (type=${meterForType.meterType})"
+                            "OKUNDU: $displaySerial = $selectedValue $selectedUnit (type=${meterForType.meterType})"
                         )
                         onMeterReadingReceived(targetMeterId, selectedValue)
                         updateMeterStatus(targetMeterId, "success")

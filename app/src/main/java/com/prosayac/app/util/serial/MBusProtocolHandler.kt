@@ -534,18 +534,15 @@ object MBusProtocolHandler {
                 return PollOutcome.ProtocolError(result.meterId, result.errorMessage ?: "Parse hatası")
             }
 
-            // Determine unit based on meter type
-            val isWaterMeter = if (response.size > 14) {
-                val medium = response[14].toInt() and 0xFF
-                medium == MEDIUM_WARM_WATER || medium == MEDIUM_COLD_WATER
-            } else {
-                false
-            }
-
-            val value = if (isWaterMeter) result.volume else result.energy
-            val unit = if (isWaterMeter) "m³" else "kWh"
-
-            return PollOutcome.Success(result.meterId ?: serialNumber, value, unit)
+            // Return both energy and volume; the caller (MetersViewModel) will select
+            // the appropriate value based on the database meter type
+            return PollOutcome.Success(
+                meterId = result.meterId ?: serialNumber,
+                value = result.volume,
+                unit = "m³",
+                energy = result.energy,
+                volume = result.volume
+            )
 
         } catch (e: Exception) {
             LoggerService.log(LogTag.ERROR, "Sayaç [$serialNumber] sorgulama hatası: ${e.message}")
