@@ -110,16 +110,8 @@ dependencies {
 
     implementation("com.github.mik3y:usb-serial-for-android:3.7.0")
 
-    // POI kept for XSSFWorkbook export (.xlsx writing works on Android)
-    // Reading .xlsx uses native parser (see ExcelParser.kt) - no NoClassDefFoundError!
-    implementation("org.apache.poi:poi:5.2.5") {
-        exclude(group = "org.apache.logging.log4j")
-        exclude(group = "commons-logging")
-    }
-    implementation("org.apache.poi:poi-ooxml:5.2.5") {
-        exclude(group = "org.apache.logging.log4j")
-        exclude(group = "commons-logging")
-    }
+    // JXL for .xls export (stable, no javax.xml.stream dependency)
+    implementation("net.sourceforge.jexcelapi:jxl:2.6.12")
 
     implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
     implementation("com.patrykandpatrick.vico:core:1.13.1")
