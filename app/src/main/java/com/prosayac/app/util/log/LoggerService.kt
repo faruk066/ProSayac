@@ -33,6 +33,8 @@ object LoggerService {
 
     private const val MAX_ENTRIES = 10_000
 
+    private val logBuffer = ArrayDeque<LogEntry>(MAX_ENTRIES)
+
     private val _logs = MutableStateFlow<List<LogEntry>>(emptyList())
     val logs: StateFlow<List<LogEntry>> = _logs.asStateFlow()
 
@@ -44,20 +46,19 @@ object LoggerService {
         )
 
         synchronized(this) {
-            val current = _logs.value.toMutableList()
-            current.add(entry)
+            logBuffer.addLast(entry)
 
-            if (current.size > MAX_ENTRIES) {
-                val overflow = current.size - MAX_ENTRIES
-                repeat(overflow) { current.removeAt(0) }
+            while (logBuffer.size > MAX_ENTRIES) {
+                logBuffer.removeFirst()
             }
 
-            _logs.value = current
+            _logs.value = logBuffer.toList()
         }
     }
 
     fun clearAll() {
         synchronized(this) {
+            logBuffer.clear()
             _logs.value = emptyList()
         }
     }

@@ -427,24 +427,26 @@ class MBusSerialManager @Inject constructor(
     // This MUST be called before sending the blind read command (10 7B FD 78 16)
     // to guarantee zero leftover bytes (F9, E5, etc.) are in the buffer.
     // ─────────────────────────────────────────────────────────────────────────
-    fun purgeAllBuffers() {
+    suspend fun purgeAllBuffers() {
         LoggerService.log(LogTag.HARDWARE, "TAMPON TEMİZLEME: Donanım ve yazılım tamponları temizleniyor...")
 
-        // 1. Purge hardware buffers (USB serial driver level)
-        try {
-            serialPort?.purgeHwBuffers(true, true)
-            LoggerService.log(LogTag.HARDWARE, "Donanım tamponları purged (RX+TX)")
-        } catch (e: Exception) {
-            LoggerService.log(LogTag.WARN, "Donanım tampon temizleme hatası: ${e.message}")
-            // Fallback: drain manually if purgeHwBuffers is not available
+        // 1. Purge hardware buffers (USB serial driver level) — blocking I/O on IO dispatcher
+        withContext(Dispatchers.IO) {
             try {
-                val drainBuf = ByteArray(256)
-                while (true) {
-                    val read = serialPort?.read(drainBuf, 50) ?: -1
-                    if (read <= 0) break
-                    LoggerService.log(LogTag.HARDWARE, "Manuel tahliye: $read byte atıldı")
-                }
-            } catch (_: Exception) {}
+                serialPort?.purgeHwBuffers(true, true)
+                LoggerService.log(LogTag.HARDWARE, "Donanım tamponları purged (RX+TX)")
+            } catch (e: Exception) {
+                LoggerService.log(LogTag.WARN, "Donanım tampon temizleme hatası: ${e.message}")
+                // Fallback: drain manually if purgeHwBuffers is not available
+                try {
+                    val drainBuf = ByteArray(256)
+                    while (true) {
+                        val read = serialPort?.read(drainBuf, 50) ?: -1
+                        if (read <= 0) break
+                        LoggerService.log(LogTag.HARDWARE, "Manuel tahliye: $read byte atıldı")
+                    }
+                } catch (_: Exception) {}
+            }
         }
 
         // 2. Clear internal software buffers
@@ -629,7 +631,7 @@ class MBusSerialManager @Inject constructor(
                             lastSentBytes.clear()
                         } else if (dataBuffer.size >= lastSentBytes.size) {
                             // Yankı birebir eşleşti ve tamamlandı!
-                            repeat(lastSentBytes.size) { dataBuffer.removeAt(0) }
+                            dataBuffer.subList(0, lastSentBytes.size).clear()
                             lastSentBytes.clear()
                         }
                     }

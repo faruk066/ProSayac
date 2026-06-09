@@ -195,7 +195,6 @@ object MBusProtocolHandler {
                     val exponent = vifCode - 0x16
                     volume += rawVal * pow10(exponent)
                     volumeFound = true
-                    if (isWaterMeter) break
                 }
                 // Energy VIF: 0x00..0x07 (Energy in Wh, ×10^(VIF-3))
                 else if (!isWaterMeter && vifCode in 0x00..0x07) {
