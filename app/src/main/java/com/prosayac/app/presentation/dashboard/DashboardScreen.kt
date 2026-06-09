@@ -202,61 +202,44 @@ fun DashboardScreen(
                     }
                 }
 
-                // ========== DONUT CHART — Senkronizasyon ==========
+                // ========== QUICK ACTION CARD (standalone, full width) ==========
                 item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Card(
+                        modifier = Modifier.fillMaxWidth().height(200.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(
+                            containerColor = ProMaxTertiaryContainer
+                        ),
+                        onClick = onNavigateToMeters
                     ) {
-                        ChartCard(
-                            title = "SENKRONİZASYON",
-                            modifier = Modifier.weight(1f)
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            DonutChart(
-                                segments = state.donutSegments,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(180.dp)
+                            Icon(
+                                Icons.Default.PlaylistAddCheck,
+                                null,
+                                modifier = Modifier.size(48.dp),
+                                tint = ProMaxTertiary
                             )
-                        }
-                        // Quick action card
-                        Card(
-                            modifier = Modifier.weight(1f).height(260.dp),
-                            shape = MaterialTheme.shapes.medium,
-                            colors = CardDefaults.cardColors(
-                                containerColor = ProMaxTertiaryContainer
-                            ),
-                            onClick = onNavigateToMeters
-                        ) {
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.PlaylistAddCheck,
-                                    null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = ProMaxTertiary
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    "Sayaç Okumaya Başla",
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = ProMaxOnTertiaryContainer,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    "${state.unreadMeters} okunmamış sayaç",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = ProMaxOnTertiaryContainer.copy(alpha = 0.7f),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                "Sayaç Okumaya Başla",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = ProMaxOnTertiaryContainer,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "${state.unreadMeters} okunmamış sayaç",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = ProMaxOnTertiaryContainer.copy(alpha = 0.7f),
+                                textAlign = TextAlign.Center
+                            )
                         }
                     }
                 }

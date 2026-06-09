@@ -134,10 +134,12 @@ class ExcelExporter @javax.inject.Inject constructor(
                 type = "application/vnd.ms-excel"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
-            context.startActivity(Intent.createChooser(intent, "Dosyayı Paylaş"))
+            // FLAG_ACTIVITY_NEW_TASK MUST be on the chooser intent when using ApplicationContext
+            val chooser = Intent.createChooser(intent, "Dosyayı Paylaş")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
             true
 
         } catch (e: IOException) {

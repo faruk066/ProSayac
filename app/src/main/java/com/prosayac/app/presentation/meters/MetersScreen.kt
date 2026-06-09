@@ -36,7 +36,8 @@ import com.prosayac.app.util.excel.ExcelFormat
 @Composable
 fun MetersScreen(
     viewModel: MetersViewModel,
-    onMenuClick: () -> Unit
+    onMenuClick: () -> Unit,
+    onNavigateToConnection: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTypeFilter by remember { mutableStateOf(false) }
@@ -70,25 +71,41 @@ fun MetersScreen(
             )
         },
         floatingActionButton = {
-            // "Okumaya Başla" FAB - triggers real M-Bus hardware polling
-            if (state.meters.isNotEmpty() && !state.isReadingInProgress) {
-                ExtendedFloatingActionButton(
-                    onClick = { viewModel.startReading() },
-                    containerColor = ProMaxTertiary,
-                    contentColor = ProMaxOnTertiary
-                ) {
-                    Icon(Icons.Default.Usb, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Okumaya Başla", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Quick connect + read action bar
+                if (state.meters.isNotEmpty() && !state.isReadingInProgress) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // "Bağlan" button - navigate to M-Bus connection screen
+                        FloatingActionButton(
+                            onClick = onNavigateToConnection,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ) {
+                            Icon(Icons.Default.Usb, "M-Bus Bağlan")
+                        }
+                        // "Okumaya Başla" FAB - triggers real M-Bus hardware polling
+                        ExtendedFloatingActionButton(
+                            onClick = { viewModel.startReading() },
+                            containerColor = ProMaxTertiary,
+                            contentColor = ProMaxOnTertiary
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Okumaya Başla", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
-            }
-            // Cancel button when reading is in progress
-            if (state.isReadingInProgress) {
-                FloatingActionButton(
-                    onClick = { viewModel.cancelReading() },
-                    containerColor = ProMaxError
-                ) {
-                    Icon(Icons.Default.Close, "Okumayı İptal Et")
+                // Cancel button when reading is in progress
+                if (state.isReadingInProgress) {
+                    FloatingActionButton(
+                        onClick = { viewModel.cancelReading() },
+                        containerColor = ProMaxError
+                    ) {
+                        Icon(Icons.Default.Close, "Okumayı İptal Et")
+                    }
                 }
             }
         }

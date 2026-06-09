@@ -257,7 +257,16 @@ fun ProSayacMainApp(
             composable(NavRoute.Meters.route) {
                 MetersScreen(
                     viewModel = metersViewModel,
-                    onMenuClick = { scope.launch { drawerState.open() } }
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    onNavigateToConnection = {
+                        navController.navigate(NavRoute.Connection.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
                 )
             }
 
