@@ -49,6 +49,32 @@ class DashboardViewModel @Inject constructor(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
+        // Single permanent collector for reactive meter counts — runs once for ViewModel lifetime
+        viewModelScope.launch {
+            combine(
+                meterRepository.getTotalCount(),
+                meterRepository.getReadCount(),
+                meterRepository.getUnreadCount(),
+                meterRepository.getUnsyncedCount(),
+                meterRepository.getTotalReadingCount()
+            ) { total, read, unread, unsynced, readingsCount ->
+                val progress = if (total > 0) read.toFloat() / total else 0f
+                val syncP = if (total > 0) (total - unsynced).toFloat() / total else 0f
+
+                _uiState.update { currentState ->
+                    currentState.copy(
+                        totalMeters = total,
+                        readMeters = read,
+                        unreadMeters = unread,
+                        unsyncedMeters = unsynced,
+                        totalReadings = readingsCount,
+                        readingProgress = progress,
+                        syncProgress = syncP
+                    )
+                }
+            }.collect()
+        }
+
         loadAllData()
     }
 
@@ -56,36 +82,9 @@ class DashboardViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
-            // Launch reactive meter counts collection in its own coroutine
-            // (combine collects forever since Room Flows are infinite)
-            launch {
-                combine(
-                    meterRepository.getTotalCount(),
-                    meterRepository.getReadCount(),
-                    meterRepository.getUnreadCount(),
-                    meterRepository.getUnsyncedCount(),
-                    meterRepository.getTotalReadingCount()
-                ) { total, read, unread, unsynced, readingsCount ->
-                    val progress = if (total > 0) read.toFloat() / total else 0f
-                    val syncP = if (total > 0) (total - unsynced).toFloat() / total else 0f
-
-                    _uiState.update { currentState ->
-                        currentState.copy(
-                            totalMeters = total,
-                            readMeters = read,
-                            unreadMeters = unread,
-                            unsyncedMeters = unsynced,
-                            totalReadings = readingsCount,
-                            readingProgress = progress,
-                            syncProgress = syncP
-                        )
-                    }
-                }.collect()
-            }
-
             // Wait briefly for combined counts to emit initial values, then load chart data
             delay(200)
-            
+
             // Load chart data (suspend functions)
             loadChartData()
 

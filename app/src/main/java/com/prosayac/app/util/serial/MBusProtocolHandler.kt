@@ -319,7 +319,7 @@ object MBusProtocolHandler {
 
         // Sign-extend if bit 31 is set
         if ((v and 0x80000000.toInt()) != 0) {
-            v = v - 0x100000000.toInt()  // convert to negative
+            return (v.toLong() - 0x100000000L).toDouble()  // convert to negative via Long
         }
         return v.toDouble()
     }

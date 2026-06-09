@@ -403,18 +403,20 @@ class MBusSerialManager @Inject constructor(
     // ─────────────────────────────────────────────────────────────────────────
     // WAIT FOR RAW RESPONSE (kept for backward compatibility)
     // ─────────────────────────────────────────────────────────────────────────
-    suspend fun waitForRawResponse(): ByteArray = suspendCancellableCoroutine { cont ->
-        synchronized(rawBuffer) {
-            if (rawBuffer.isNotEmpty()) {
-                val data = rawBuffer.toByteArray()
-                rawBuffer.clear()
-                rawResponseCallback = null
-                cont.resume(data)
-                return@suspendCancellableCoroutine
-            }
+    suspend fun waitForRawResponse(): ByteArray? = withTimeoutOrNull(1500L) {
+        suspendCancellableCoroutine { cont ->
+            synchronized(rawBuffer) {
+                if (rawBuffer.isNotEmpty()) {
+                    val data = rawBuffer.toByteArray()
+                    rawBuffer.clear()
+                    rawResponseCallback = null
+                    cont.resume(data)
+                    return@suspendCancellableCoroutine
+                }
 
-            rawResponseCallback = { data ->
-                cont.resume(data)
+                rawResponseCallback = { data ->
+                    cont.resume(data)
+                }
             }
         }
     }
