@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
@@ -69,7 +70,7 @@ fun ReadingsScreen(
     viewModel: ReadingsViewModel,
     onMenuClick: () -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         topBar = {
@@ -171,7 +172,7 @@ fun ReadingsScreen(
                     }
 
                     LazyColumn(modifier = Modifier.fillMaxWidth().weight(1f)) {
-                        items(pageReadings) { reading ->
+                        items(pageReadings, key = { it.id }) { reading ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()

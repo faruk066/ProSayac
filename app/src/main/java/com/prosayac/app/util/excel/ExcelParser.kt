@@ -607,9 +607,10 @@ class ExcelParser @javax.inject.Inject constructor(
     private fun safeGetCellAsText(row: List<String>, cellIndex: Int): String {
         if (cellIndex < 0 || cellIndex >= row.size) return ""
         val raw = row[cellIndex].trim()
-        val num = raw.toDoubleOrNull()
-        return if (num != null && num == num.toLong().toDouble()) {
-            num.toLong().toString()
+        // Use string manipulation to strip ".0" suffix instead of converting to Double/Long,
+        // which would strip leading zeros (e.g., "01234567.0" → "01234567" not "1234567")
+        return if (raw.endsWith(".0") && raw.count { it == '.' } == 1) {
+            raw.removeSuffix(".0")
         } else {
             raw
         }

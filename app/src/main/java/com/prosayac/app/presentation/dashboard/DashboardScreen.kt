@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,7 +44,7 @@ fun DashboardScreen(
     onNavigateToMeters: () -> Unit,
     onMenuClick: () -> Unit
 ) {
-    val state by viewModel.uiState.collectAsState()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     // Refresh dashboard data every time this screen becomes visible
     // (e.g., after returning from Meters screen post-reading session)
@@ -330,6 +331,24 @@ fun BarChart(
         animatedProgress.animateTo(1f, animationSpec = tween(800, easing = FastOutSlowInEasing))
     }
 
+    // Hoist Paint objects outside draw loop to prevent GC pressure (100+ allocs/sec)
+    val valueLabelPaint = remember {
+        android.graphics.Paint().apply {
+            color = barColor.toArgb()
+            textSize = 24f
+            textAlign = android.graphics.Paint.Align.CENTER
+            isAntiAlias = true
+        }
+    }
+    val axisLabelPaint = remember {
+        android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#64748B")
+            textSize = 22f
+            textAlign = android.graphics.Paint.Align.CENTER
+            isAntiAlias = true
+        }
+    }
+
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -355,35 +374,25 @@ fun BarChart(
                 cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
             )
 
-            // Value label on top
+            // Value label on top (reuse hoisted Paint)
             if (barHeight > 20f) {
                 drawContext.canvas.nativeCanvas.drawText(
                     "${value.toInt()}",
                     x + barWidth / 2,
                     y - 6f,
-                    android.graphics.Paint().apply {
-                        color = barColor.toArgb()
-                        textSize = 24f
-                        textAlign = android.graphics.Paint.Align.CENTER
-                        isAntiAlias = true
-                    }
+                    valueLabelPaint
                 )
             }
         }
 
-        // X-axis labels
+        // X-axis labels (reuse hoisted Paint)
         labels.forEachIndexed { index, label ->
             val x = spacingBetween + index * (barWidth + spacingBetween) + barWidth / 2
             drawContext.canvas.nativeCanvas.drawText(
                 label,
                 x,
                 canvasHeight - 4f,
-                android.graphics.Paint().apply {
-                    color = android.graphics.Color.parseColor("#64748B")
-                    textSize = 22f
-                    textAlign = android.graphics.Paint.Align.CENTER
-                    isAntiAlias = true
-                }
+                axisLabelPaint
             )
         }
     }
@@ -500,6 +509,16 @@ fun LineChart(
         animatedProgress.animateTo(1f, animationSpec = tween(1000, easing = FastOutSlowInEasing))
     }
 
+    // Hoist Paint to prevent allocation per frame during animation
+    val lineChartAxisPaint = remember {
+        android.graphics.Paint().apply {
+            color = android.graphics.Color.parseColor("#64748B")
+            textSize = 20f
+            textAlign = android.graphics.Paint.Align.CENTER
+            isAntiAlias = true
+        }
+    }
+
     Canvas(modifier = modifier) {
         val canvasWidth = size.width
         val canvasHeight = size.height
@@ -571,7 +590,7 @@ fun LineChart(
             }
         }
 
-        // X-axis labels
+        // X-axis labels (reuse hoisted Paint)
         labels.forEachIndexed { index, label ->
             if (index < labels.size) {
                 val x = if (pointCount > 1) index.toFloat() / (pointCount - 1) * canvasWidth else canvasWidth / 2
@@ -579,12 +598,7 @@ fun LineChart(
                     label,
                     x,
                     canvasHeight - 4f,
-                    android.graphics.Paint().apply {
-                        color = android.graphics.Color.parseColor("#64748B")
-                        textSize = 20f
-                        textAlign = android.graphics.Paint.Align.CENTER
-                        isAntiAlias = true
-                    }
+                    lineChartAxisPaint
                 )
             }
         }
