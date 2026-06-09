@@ -232,7 +232,10 @@ class MBusSerialManager @Inject constructor(
             LoggerService.log(LogTag.INFO, "USB izni verildi, bağlantı yeniden deneniyor")
             val config = pendingConfig ?: SerialConfig()
             pendingConfig = null
-            connect(config)
+            // Offload blocking USB I/O to IO dispatcher to prevent ANR on main thread
+            CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+                connect(config)
+            }
         } else {
             LoggerService.log(LogTag.WARN, "USB izni reddedildi")
             pendingConfig = null

@@ -19,6 +19,8 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class ExcelExporter @javax.inject.Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
@@ -132,19 +134,26 @@ class ExcelExporter @javax.inject.Inject constructor(
                 type = "application/vnd.ms-excel"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
 
             context.startActivity(Intent.createChooser(intent, "Dosyayı Paylaş"))
             true
 
         } catch (e: IOException) {
-            Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
+            }
             false
         } catch (e: jxl.write.WriteException) {
-            Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
+            }
             false
         } catch (e: Exception) {
-            Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
+            }
             false
         }
     }

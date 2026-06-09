@@ -10,6 +10,9 @@ interface MeterDao {
     @Query("SELECT * FROM meters ORDER BY created_at DESC")
     fun getAllMeters(): Flow<List<MeterEntity>>
 
+    @Query("SELECT * FROM meters")
+    suspend fun getAllMetersOnce(): List<MeterEntity>
+
     @Query("SELECT * FROM meters WHERE id = :id")
     suspend fun getMeterById(id: Long): MeterEntity?
 
@@ -41,15 +44,35 @@ interface MeterDao {
     suspend fun insertMeters(meters: List<MeterEntity>): List<Long>
 
     /**
-     * Atomic import: deletes all existing meters and inserts the new list
-     * within a single database transaction. If any step fails, the entire
-     * operation is rolled back, preserving old data integrity.
+     * Atomic import with upsert strategy: preserves existing meter IDs to prevent
+     * CASCADE deletion of historical readings. Matches meters by serial_number.
+     * - If meter exists: updates metadata fields (flat, type, owner, address, building)
+     *   while preserving ID, status, reading data, sync state, and creation timestamp.
+     * - If meter is new: inserts it.
+     * 
+     * This prevents the data loss bug where deleteAll() + CASCADE would wipe all readings.
      */
     @Transaction
     suspend fun importAllAtomic(newMeters: List<MeterEntity>) {
-        deleteAll()
-        if (newMeters.isNotEmpty()) {
-            insertMeters(newMeters)
+        val existingMeters = getAllMetersOnce()
+        val existingBySerial = existingMeters.associateBy { it.serialNumber }
+        
+        for (meter in newMeters) {
+            val existing = existingBySerial[meter.serialNumber]
+            if (existing != null) {
+                // Update preserving the ID and reading-related fields to avoid CASCADE delete
+                val updated = meter.copy(
+                    id = existing.id,
+                    status = existing.status,
+                    lastReading = existing.lastReading,
+                    lastReadingDate = existing.lastReadingDate,
+                    isSynced = existing.isSynced,
+                    createdAt = existing.createdAt
+                )
+                updateMeter(updated)
+            } else {
+                insertMeter(meter)
+            }
         }
     }
 
