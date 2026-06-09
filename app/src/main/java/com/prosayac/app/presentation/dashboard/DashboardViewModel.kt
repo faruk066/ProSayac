@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.prosayac.app.data.local.dao.DailyStats
 import com.prosayac.app.data.local.dao.MonthlyStats
 import com.prosayac.app.data.local.dao.TypeStats
-import com.prosayac.app.domain.model.DashboardStats
 import com.prosayac.app.domain.repository.MeterRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay

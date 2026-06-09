@@ -21,7 +21,7 @@ import java.util.Date
 import java.util.Locale
 
 class ExcelExporter @javax.inject.Inject constructor(
-    private val context: Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) {
 
     suspend fun export(readings: List<ReadingWithMeter>, binaAdi: String): Boolean {

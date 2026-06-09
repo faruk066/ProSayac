@@ -1,7 +1,5 @@
 package com.prosayac.app.presentation.readings
 
-import android.content.Intent
-import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -15,18 +13,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import com.prosayac.app.data.local.dao.ReadingWithMeter
 import com.prosayac.app.presentation.components.SyncStatusBadge
 import com.prosayac.app.presentation.theme.*
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -54,6 +49,20 @@ private fun formatReadingValue(raw: String, meterType: String): String {
     return "$formatted$unit"
 }
 
+/**
+ * Formats a flat/apartment number string by stripping unnecessary trailing zeros
+ * (e.g., "1.0" -> "1", "2.5" -> "2.5", "10" -> "10")
+ */
+private fun formatFlatNumber(raw: String): String {
+    val numeric = raw.replace(",", ".").toDoubleOrNull()
+    if (numeric == null) return raw
+    if (numeric == Math.floor(numeric) && !java.lang.Double.isInfinite(numeric)) {
+        return numeric.toLong().toString()
+    }
+    val df = java.text.DecimalFormat("0.###")
+    return df.format(numeric)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReadingsScreen(
@@ -61,7 +70,6 @@ fun ReadingsScreen(
     onMenuClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
 
     Scaffold(
         topBar = {
@@ -172,7 +180,7 @@ fun ReadingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 TableCell(reading.serialNumber.ifBlank { "-" }, 130.dp, mono = true)
-                                TableCell(reading.flatNumber.ifBlank { "-" }, 60.dp)
+                                TableCell(formatFlatNumber(reading.flatNumber).ifBlank { "-" }, 60.dp)
                                 TableCell(reading.buildingName.ifBlank { "-" }, 80.dp, mono = true)
                                 // READING VALUE - the actual numeric reading (e.g., "150 kWh")
                                 TableCell(
@@ -247,34 +255,12 @@ fun ReadingsScreen(
     }
 
     // Export dialog
-    if (state.showExportDone && state.exportPath != null) {
-        val exportPath = state.exportPath!!
+    if (state.showExportDone) {
         AlertDialog(
             onDismissRequest = { viewModel.dismissExportDone() },
             title = { Text("Dışa Aktarma Tamamlandı", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    Text("Okumalar başarıyla dışa aktarıldı:")
-                    Text(exportPath, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            },
-            confirmButton = { TextButton(onClick = { viewModel.dismissExportDone() }) { Text("Tamam") } },
-            dismissButton = {
-                TextButton(onClick = {
-                    try {
-                        val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", File(exportPath))
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "application/vnd.ms-excel"
-                            putExtra(Intent.EXTRA_STREAM, uri)
-                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        }
-                        context.startActivity(Intent.createChooser(intent, "Paylaş"))
-                    } catch (e: Exception) {
-                        android.util.Log.e("ReadingsScreen", "Paylaşım başlatılamadı", e)
-                        Toast.makeText(context, "Paylaşım başlatılamadı: ${e.message}", Toast.LENGTH_SHORT).show()
-                    }
-                }) { Text("Paylaş") }
-            }
+            text = { Text("Okumalar başarıyla Excel dosyası olarak dışa aktarıldı ve paylaşım ekranı açıldı.") },
+            confirmButton = { TextButton(onClick = { viewModel.dismissExportDone() }) { Text("Tamam") } }
         )
     }
 }

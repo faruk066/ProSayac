@@ -3,6 +3,7 @@ package com.prosayac.app.data.local.entity
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import com.prosayac.app.domain.model.MeterStatus
 
 @Entity(tableName = "meters")
 data class MeterEntity(
@@ -28,7 +29,7 @@ data class MeterEntity(
     val buildingName: String = "",
 
     @ColumnInfo(name = "status")
-    val status: String = "Unread", // "Unread", "Read", "Skipped"
+    val status: MeterStatus = MeterStatus.UNREAD,
 
     @ColumnInfo(name = "last_reading")
     val lastReading: String? = null,

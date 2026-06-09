@@ -1,10 +1,10 @@
 package com.prosayac.app.presentation.meters
 
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.prosayac.app.domain.model.Meter
+import com.prosayac.app.domain.model.MeterStatus
 import com.prosayac.app.domain.model.PollOutcome
 import com.prosayac.app.domain.model.Reading
 import com.prosayac.app.domain.repository.MeterRepository
@@ -19,7 +19,6 @@ import com.prosayac.app.util.serial.ConnectionState
 import com.prosayac.app.util.serial.MBusProtocolHandler
 import com.prosayac.app.util.serial.MBusSerialManager
 import dagger.hilt.android.lifecycle.HiltViewModel
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -64,13 +63,11 @@ data class ImportResultState(
 class MetersViewModel @Inject constructor(
     private val meterRepository: MeterRepository,
     private val serialManager: MBusSerialManager,
-    @ApplicationContext private val context: Context
+    private val excelParser: ExcelParser
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MetersUiState())
     val uiState: StateFlow<MetersUiState> = _uiState.asStateFlow()
-
-    private val excelParser = ExcelParser()
 
     private var readingJob: Job? = null
 
@@ -123,7 +120,7 @@ class MetersViewModel @Inject constructor(
 
             try {
                 val result = withContext(Dispatchers.IO) {
-                    excelParser.parse(context, uri, buildingName)
+                    excelParser.parse(uri, buildingName)
                 }
 
                 if (result.ambiguousFormats.isNotEmpty()) {
@@ -215,7 +212,7 @@ class MetersViewModel @Inject constructor(
                 return@launch
             }
 
-            val unreadMeters = _uiState.value.meters.filter { it.status == "Unread" }
+            val unreadMeters = _uiState.value.meters.filter { it.status == MeterStatus.UNREAD }
             if (unreadMeters.isEmpty()) {
                 LoggerService.log(LogTag.INFO, "Okunmamış sayaç yok - okuma atlandı")
                 _uiState.value = _uiState.value.copy(
@@ -354,7 +351,7 @@ class MetersViewModel @Inject constructor(
         try {
             meterRepository.updateMeterReading(
                 id = meterId,
-                status = "Read",
+                status = MeterStatus.READ.dbValue,
                 reading = readingValue,
                 readingDate = System.currentTimeMillis()
             )
@@ -443,7 +440,7 @@ class MetersViewModel @Inject constructor(
         val allMeters = currentState.meters
         val filtered = allMeters.filter { meter ->
             val typeMatch = currentState.selectedTypeFilter == "All" || meter.meterType == currentState.selectedTypeFilter
-            val statusMatch = currentState.selectedStatusFilter == "All" || meter.status == currentState.selectedStatusFilter
+            val statusMatch = currentState.selectedStatusFilter == "All" || meter.status.dbValue == currentState.selectedStatusFilter
             typeMatch && statusMatch
         }
         _uiState.value = currentState.copy(filteredMeters = filtered)

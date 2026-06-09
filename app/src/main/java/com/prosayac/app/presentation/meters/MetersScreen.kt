@@ -448,6 +448,20 @@ private fun formatReadingValue(raw: String, meterType: String): String {
     return "$formatted$unit"
 }
 
+/**
+ * Formats a flat/apartment number string by stripping unnecessary trailing zeros
+ * (e.g., "1.0" -> "1", "2.5" -> "2.5", "10" -> "10")
+ */
+private fun formatFlatNumber(raw: String): String {
+    val numeric = raw.replace(",", ".").toDoubleOrNull()
+    if (numeric == null) return raw
+    if (numeric == Math.floor(numeric) && !java.lang.Double.isInfinite(numeric)) {
+        return numeric.toLong().toString()
+    }
+    val df = java.text.DecimalFormat("0.###")
+    return df.format(numeric)
+}
+
 @Composable
 fun MeterGridCard(
     meter: Meter,
@@ -456,8 +470,8 @@ fun MeterGridCard(
     isReadingInProgress: Boolean = false
 ) {
     val statusColor = when (meter.status) {
-        "Read" -> SyncSynced
-        "Skipped" -> ChartOrange
+        com.prosayac.app.domain.model.MeterStatus.READ -> SyncSynced
+        com.prosayac.app.domain.model.MeterStatus.SKIPPED -> ChartOrange
         else -> ProMaxError
     }
 
@@ -542,7 +556,11 @@ fun MeterGridCard(
                 )
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text("D: ${meter.displayFlatNumber}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                formatFlatNumber(meter.flatNumber),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Text(meter.meterType, style = MaterialTheme.typography.labelSmall, fontFamily = FontFamily.Monospace)
             Spacer(modifier = Modifier.height(6.dp))
 

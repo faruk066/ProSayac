@@ -8,7 +8,7 @@ data class Meter(
     val ownerName: String = "",
     val address: String = "",
     val buildingName: String = "",
-    val status: String = "Unread",
+    val status: MeterStatus = MeterStatus.UNREAD,
     val lastReading: String? = null,
     val lastReadingDate: Long? = null,
     val isSynced: Boolean = false,
@@ -27,10 +27,5 @@ data class Meter(
         get() = buildingName.ifBlank { "-" }
 
     val displayStatus: String
-        get() = when (status) {
-            "Read" -> "Okundu"
-            "Unread" -> "Okunamadı"
-            "Skipped" -> "Atlandı"
-            else -> status
-        }
+        get() = status.displayName
 }

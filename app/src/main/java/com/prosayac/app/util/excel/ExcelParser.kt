@@ -4,8 +4,10 @@ import android.content.Context
 import android.net.Uri
 import android.util.Xml
 import com.prosayac.app.domain.model.Meter
+import com.prosayac.app.domain.model.MeterStatus
 import com.prosayac.app.util.log.LoggerService
 import com.prosayac.app.util.log.LogTag
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.xmlpull.v1.XmlPullParser
@@ -44,7 +46,6 @@ enum class ExcelFormat {
 
 const val METER_TYPE_HEAT = "Isı Sayacı"
 const val METER_TYPE_WATER = "Sıcak Su Sayacı"
-private const val STATUS_UNREAD = "Unread"
 private const val TYPE_CODE_HEAT = 4
 private const val TYPE_CODE_WATER = 6
 
@@ -52,9 +53,11 @@ private const val TYPE_CODE_WATER = 6
 // NATIVE KOTLIN XLSX PARSER (NO APACHE POI)
 // =============================================================================
 
-class ExcelParser {
+class ExcelParser @javax.inject.Inject constructor(
+    @ApplicationContext private val context: Context
+) {
 
-    suspend fun parse(context: Context, uri: Uri, buildingName: String, forceFormat: ExcelFormat? = null): ExcelParseResult = withContext(Dispatchers.IO) {
+    suspend fun parse(uri: Uri, buildingName: String, forceFormat: ExcelFormat? = null): ExcelParseResult = withContext(Dispatchers.IO) {
         val errors = mutableListOf<ExcelParseError>()
         LoggerService.log(LogTag.PARSER, "Native XLSX parse başlatıldı: bina=\"$buildingName\"")
 
@@ -390,14 +393,14 @@ class ExcelParser {
                     }
                 }
 
-                val flatNumber = safeGetCell(row, flatCol)
+                val flatNumber = safeGetCellAsText(row, flatCol)
                 meters.add(
                     Meter(
                         serialNumber = serial,
                         flatNumber = flatNumber,
                         meterType = meterType,
                         buildingName = buildingName,
-                        status = STATUS_UNREAD
+                        status = MeterStatus.UNREAD
                     )
                 )
             } catch (e: Exception) {
@@ -469,14 +472,14 @@ class ExcelParser {
                     }
                 }
 
-                val flatNumber = safeGetCell(row, flatCol)
+                val flatNumber = safeGetCellAsText(row, flatCol)
                 meters.add(
                     Meter(
                         serialNumber = serial,
                         flatNumber = flatNumber,
                         meterType = meterType,
                         buildingName = buildingName,
-                        status = STATUS_UNREAD
+                        status = MeterStatus.UNREAD
                     )
                 )
             } catch (e: Exception) {
@@ -530,7 +533,7 @@ class ExcelParser {
             totalRows++
 
             try {
-                val flatNumber = safeGetCell(row, flatCol)
+                val flatNumber = safeGetCellAsText(row, flatCol)
                 var rowHasAnyMeter = false
 
                 if (heatSerialCol >= 0) {
@@ -542,7 +545,7 @@ class ExcelParser {
                                 flatNumber = flatNumber,
                                 meterType = METER_TYPE_HEAT,
                                 buildingName = buildingName,
-                                status = STATUS_UNREAD
+                                status = MeterStatus.UNREAD
                             )
                         )
                         rowHasAnyMeter = true
@@ -558,7 +561,7 @@ class ExcelParser {
                                 flatNumber = flatNumber,
                                 meterType = METER_TYPE_WATER,
                                 buildingName = buildingName,
-                                status = STATUS_UNREAD
+                                status = MeterStatus.UNREAD
                             )
                         )
                         rowHasAnyMeter = true
