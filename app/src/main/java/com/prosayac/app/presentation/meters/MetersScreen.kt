@@ -3,7 +3,9 @@ package com.prosayac.app.presentation.meters
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -45,6 +47,7 @@ fun MetersScreen(
     val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
     var showTypeFilter by remember { mutableStateOf(false) }
     var showStatusFilter by remember { mutableStateOf(false) }
+    var singlePollMeter by remember { mutableStateOf<Meter?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -117,6 +120,19 @@ fun MetersScreen(
                             Icon(Icons.Default.PlayArrow, contentDescription = null)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Okumaya Başla", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    // "Hatalıları Tekrar Oku" button - re-poll all UNREAD meters
+                    val hasFailedMeters = state.meters.any { it.status == com.prosayac.app.domain.model.MeterStatus.UNREAD }
+                    if (hasFailedMeters) {
+                        ExtendedFloatingActionButton(
+                            onClick = { viewModel.pollFailedMeters() },
+                            containerColor = ChartOrange,
+                            contentColor = Color.White
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Hatalıları Tekrar Oku", fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -305,7 +321,8 @@ fun MetersScreen(
                             meter = meter,
                             readStatus = readStatus,
                             readingValue = readingValue,
-                            isReadingInProgress = state.isReadingInProgress
+                            isReadingInProgress = state.isReadingInProgress,
+                            onSinglePoll = { singlePollMeter = meter }
                         )
                     }
                 }
@@ -327,6 +344,42 @@ fun MetersScreen(
             options = state.pendingFormatOptions,
             onSelected = { viewModel.onFormatPicked(it) },
             onDismiss = { viewModel.dismissFormatChoice() }
+        )
+    }
+
+    // Single meter poll confirmation dialog
+    singlePollMeter?.let { meter ->
+        AlertDialog(
+            onDismissRequest = { singlePollMeter = null },
+            icon = { Icon(Icons.Default.Usb, null, tint = ProMaxTertiary) },
+            title = { Text("Sayaç Oku", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Text(
+                        "${meter.displaySerialNumber} - ${meter.meterType}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Bu sayacı şimdi M-Bus üzerinden okumak istiyor musunuz?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.pollSingleMeter(meter)
+                        singlePollMeter = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = ProMaxTertiary)
+                ) { Text("Bu Sayacı Oku") }
+            },
+            dismissButton = {
+                TextButton(onClick = { singlePollMeter = null }) { Text("İptal") }
+            }
         )
     }
 
@@ -514,12 +567,14 @@ private fun formatFlatNumber(raw: String): String {
     return df.format(numeric)
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MeterGridCard(
     meter: Meter,
     readStatus: String? = null,
     readingValue: String? = null,
-    isReadingInProgress: Boolean = false
+    isReadingInProgress: Boolean = false,
+    onSinglePoll: (() -> Unit)? = null
 ) {
     val statusColor = when (meter.status) {
         com.prosayac.app.domain.model.MeterStatus.READ -> SyncSynced
@@ -545,7 +600,18 @@ fun MeterGridCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (onSinglePoll != null) {
+                    Modifier.combinedClickable(
+                        onClick = {},
+                        onLongClick = onSinglePoll
+                    )
+                } else {
+                    Modifier
+                }
+            ),
         shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)

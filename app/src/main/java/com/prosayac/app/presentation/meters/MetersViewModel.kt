@@ -27,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -245,125 +246,199 @@ class MetersViewModel @Inject constructor(
                 return@launch
             }
 
-            LoggerService.log(LogTag.INFO, "Toplam ${unreadMeters.size} okunmamış sayaç bulundu")
+            runReadingLoop(unreadMeters, "Okunmamış sayaç yok, okuma atlandı")
+        }
+    }
 
+    /**
+     * Poll a single meter by serial number. Shows result on the card immediately.
+     * Only available when no bulk reading is in progress.
+     */
+    fun pollSingleMeter(meter: Meter) {
+        if (_uiState.value.isReadingInProgress) {
+            LoggerService.log(LogTag.WARN, "Okuma devam ederken tekli sorgu başlatılamaz")
+            return
+        }
+        if (serialManager.connectionState.value != ConnectionState.CONNECTED) {
             _uiState.value = _uiState.value.copy(
-                isReadingInProgress = true,
-                readingProgressMessage = "0 / ${unreadMeters.size} okundu",
-                meterReadStatuses = emptyMap(),
-                meterReadingValues = emptyMap()
+                error = "M-Bus bağlantısı kurulu değil."
             )
+            return
+        }
+        viewModelScope.launch {
+            LoggerService.log(LogTag.INFO, "======= TEKLİ OKUMA ======= ${meter.serialNumber}")
+            pollSingleMeterInternal(meter, 1, 1)
+            LoggerService.log(LogTag.INFO, "======= TEKLİ OKUMA TAMAM ======= ${meter.serialNumber}")
+        }
+    }
 
-            var readCount = 0
-            var timeoutCount = 0
-            var errorCount = 0
-
-            for ((index, meter) in unreadMeters.withIndex()) {
-                if (!isActive) {
-                    LoggerService.log(LogTag.WARN, "Okuma iptal edildi (scope inactive)")
-                    break
-                }
-
-                // Pause check: spin while paused, resume seamlessly
-                while (_isPaused.value) {
-                    delay(500)
-                    if (!isActive) break
-                }
-                if (!isActive) break
-
-                updateMeterStatus(meter.id, "polling")
-
-                val progressMsg = "$index / ${unreadMeters.size} okundu"
+    /**
+     * Re-poll all meters with UNREAD status. Shows the same progress UX as
+     * startReading() but pre-filtered to only unread/failed meters.
+     */
+    fun pollFailedMeters() {
+        val failed = _uiState.value.meters.filter { it.status == MeterStatus.UNREAD }
+        if (failed.isEmpty()) {
+            _uiState.value = _uiState.value.copy(
+                error = "Hatalı veya okunmamış sayaç bulunamadı"
+            )
+            return
+        }
+        readingJob?.cancel()
+        readingJob = viewModelScope.launch {
+            if (serialManager.connectionState.value != ConnectionState.CONNECTED) {
                 _uiState.value = _uiState.value.copy(
-                    readingProgressMessage = progressMsg
+                    error = "M-Bus bağlantısı kurulu değil. Lütfen önce bağlanın."
                 )
+                return@launch
+            }
+            LoggerService.log(LogTag.INFO, "======= YENİDEN OKUMA BAŞLATILDI (${failed.size} sayaç) =======")
+            runReadingLoop(failed, "Yeniden okunacak sayaç yok")
+        }
+    }
 
-                LoggerService.log(
-                    LogTag.HARDWARE,
-                    "Sayaç [$index/${unreadMeters.size}] sorgulanıyor: ${meter.serialNumber}"
-                )
+    /**
+     * Core reading loop shared by startReading() and pollFailedMeters().
+     * Iterates [metersToList], checks pause/cancel, calls [pollSingleMeterInternal]
+     * for each, and reports completion.
+     */
+    private suspend fun runReadingLoop(metersToList: List<Meter>, emptyMsg: String) {
+        if (metersToList.isEmpty()) {
+            LoggerService.log(LogTag.INFO, emptyMsg)
+            _uiState.value = _uiState.value.copy(
+                readingProgressMessage = emptyMsg,
+                isReadingInProgress = false
+            )
+            return
+        }
 
-                val outcome = MBusProtocolHandler.pollMeter(
-                    serialNumber = meter.serialNumber,
-                    serialManager = serialManager
-                )
+        LoggerService.log(LogTag.INFO, "Toplam ${metersToList.size} sayaç okunacak")
 
-                when (outcome) {
-                    is PollOutcome.Success -> {
-                        val matchedMeter = _uiState.value.meters.firstOrNull { it.serialNumber == outcome.meterId }
-                        val targetMeterId = matchedMeter?.id ?: meter.id
-                        val displaySerial = matchedMeter?.serialNumber ?: meter.serialNumber
+        _uiState.value = _uiState.value.copy(
+            isReadingInProgress = true,
+            readingProgressMessage = "0 / ${metersToList.size} okundu",
+            meterReadStatuses = emptyMap(),
+            meterReadingValues = emptyMap()
+        )
 
-                        // Use database meter type for value selection
-                        val meterForType = matchedMeter ?: meter
-                        // Water meters (containing "Su") use volume, heat meters (containing "Isı") use energy
-                        val selectedValue = if (meterForType.meterType.contains("Su")) {
-                            String.format("%.3f", outcome.volume)
-                        } else {
-                            String.format("%.3f", outcome.energy)
-                        }
-                        val selectedUnit = if (meterForType.meterType.contains("Su")) "m³" else "kWh"
+        var readCount = 0
+        var timeoutCount = 0
+        var errorCount = 0
 
-                        LoggerService.log(
-                            LogTag.INFO,
-                            "OKUNDU: $displaySerial = $selectedValue $selectedUnit (type=${meterForType.meterType})"
-                        )
-                        onMeterReadingReceived(targetMeterId, selectedValue)
-                        updateMeterStatus(targetMeterId, "success")
-                        updateMeterReadingValue(targetMeterId, selectedValue)
-                        readCount++
-                    }
-                    is PollOutcome.Timeout -> {
-                        LoggerService.log(
-                            LogTag.WARN,
-                            "ZAMAN AŞIMI: ${outcome.meterId ?: meter.serialNumber} - ${outcome.durationMs}ms içinde yanıt gelmedi"
-                        )
-                        updateMeterStatus(meter.id, "timeout")
-                        timeoutCount++
-                    }
-                    is PollOutcome.ProtocolError -> {
-                        LoggerService.log(
-                            LogTag.ERROR,
-                            "PROTOKOL HATASI: ${outcome.meterId ?: meter.serialNumber} - ${outcome.message}"
-                        )
-                        updateMeterStatus(meter.id, "error")
-                        errorCount++
-                    }
-                    is PollOutcome.InvalidSerial -> {
-                        LoggerService.log(
-                            LogTag.ERROR,
-                            "GEÇERSİZ SERİ NO: ${outcome.serial} - ${outcome.reason}"
-                        )
-                        updateMeterStatus(meter.id, "error")
-                        errorCount++
-                    }
-                    is PollOutcome.DeviceNotFound -> {
-                        LoggerService.log(
-                            LogTag.ERROR,
-                            "CİHAZ BULUNAMADI: ${meter.serialNumber}"
-                        )
-                        updateMeterStatus(meter.id, "error")
-                        errorCount++
-                    }
-                }
-
-                if (index < unreadMeters.size - 1) {
-                    delay(MBusProtocolHandler.INTER_FRAME_DELAY_MS)
-                }
+        for ((index, meter) in metersToList.withIndex()) {
+            if (!currentCoroutineContext().isActive) {
+                LoggerService.log(LogTag.WARN, "Okuma iptal edildi (scope inactive)")
+                break
             }
 
-            _isPaused.value = false
+            // Pause check: spin while paused, resume seamlessly
+            while (_isPaused.value) {
+                delay(500)
+                if (!currentCoroutineContext().isActive) break
+            }
+            if (!currentCoroutineContext().isActive) break
 
-            LoggerService.log(
-                LogTag.INFO,
-                "======= HARDWARE OKUMA TAMAMLANDI =======" +
-                    " Okunan: $readCount, Zaman Aşımı: $timeoutCount, Hata: $errorCount"
-            )
+            when (pollSingleMeterInternal(meter, index, metersToList.size)) {
+                "success" -> readCount++
+                "timeout" -> timeoutCount++
+                else -> errorCount++
+            }
 
-            _uiState.value = _uiState.value.copy(
-                isReadingInProgress = false,
-                readingProgressMessage = "Tamamlandı: $readCount okundu, $timeoutCount cevap vermedi"
-            )
+            if (index < metersToList.size - 1) {
+                delay(MBusProtocolHandler.INTER_FRAME_DELAY_MS)
+            }
+        }
+
+        _isPaused.value = false
+
+        LoggerService.log(
+            LogTag.INFO,
+            "======= OKUMA TAMAMLANDI =======" +
+                " Okunan: $readCount, Zaman Aşımı: $timeoutCount, Hata: $errorCount"
+        )
+
+        _uiState.value = _uiState.value.copy(
+            isReadingInProgress = false,
+            readingProgressMessage = "Tamamlandı: $readCount okundu, $timeoutCount cevap vermedi"
+        )
+    }
+
+    /**
+     * Poll a single meter, update UI state with live status on the card.
+     * Shared by the bulk loop, pollSingleMeter(), and pollFailedMeters().
+     * Returns "success", "timeout", or "error".
+     */
+    private suspend fun pollSingleMeterInternal(meter: Meter, index: Int, total: Int): String {
+        updateMeterStatus(meter.id, "polling")
+
+        val progressMsg = "$index / $total okundu"
+        _uiState.value = _uiState.value.copy(readingProgressMessage = progressMsg)
+
+        LoggerService.log(
+            LogTag.HARDWARE,
+            "Sayaç [$index/$total] sorgulanıyor: ${meter.serialNumber}"
+        )
+
+        val outcome = MBusProtocolHandler.pollMeter(
+            serialNumber = meter.serialNumber,
+            serialManager = serialManager
+        )
+
+        return when (outcome) {
+            is PollOutcome.Success -> {
+                val matchedMeter = _uiState.value.meters.firstOrNull { it.serialNumber == outcome.meterId }
+                val targetMeterId = matchedMeter?.id ?: meter.id
+                val displaySerial = matchedMeter?.serialNumber ?: meter.serialNumber
+
+                val meterForType = matchedMeter ?: meter
+                val selectedValue = if (meterForType.meterType.contains("Su")) {
+                    String.format("%.3f", outcome.volume)
+                } else {
+                    String.format("%.3f", outcome.energy)
+                }
+                val selectedUnit = if (meterForType.meterType.contains("Su")) "m³" else "kWh"
+
+                LoggerService.log(
+                    LogTag.INFO,
+                    "OKUNDU: $displaySerial = $selectedValue $selectedUnit (type=${meterForType.meterType})"
+                )
+                onMeterReadingReceived(targetMeterId, selectedValue)
+                updateMeterStatus(targetMeterId, "success")
+                updateMeterReadingValue(targetMeterId, selectedValue)
+                "success"
+            }
+            is PollOutcome.Timeout -> {
+                LoggerService.log(
+                    LogTag.WARN,
+                    "ZAMAN AŞIMI: ${outcome.meterId ?: meter.serialNumber} - ${outcome.durationMs}ms içinde yanıt gelmedi"
+                )
+                updateMeterStatus(meter.id, "timeout")
+                "timeout"
+            }
+            is PollOutcome.ProtocolError -> {
+                LoggerService.log(
+                    LogTag.ERROR,
+                    "PROTOKOL HATASI: ${outcome.meterId ?: meter.serialNumber} - ${outcome.message}"
+                )
+                updateMeterStatus(meter.id, "error")
+                "error"
+            }
+            is PollOutcome.InvalidSerial -> {
+                LoggerService.log(
+                    LogTag.ERROR,
+                    "GEÇERSİZ SERİ NO: ${outcome.serial} - ${outcome.reason}"
+                )
+                updateMeterStatus(meter.id, "error")
+                "error"
+            }
+            is PollOutcome.DeviceNotFound -> {
+                LoggerService.log(
+                    LogTag.ERROR,
+                    "CİHAZ BULUNAMADI: ${meter.serialNumber}"
+                )
+                updateMeterStatus(meter.id, "error")
+                "error"
+            }
         }
     }
 
