@@ -36,8 +36,7 @@ import com.prosayac.app.util.excel.ExcelFormat
 @Composable
 fun MetersScreen(
     viewModel: MetersViewModel,
-    onMenuClick: () -> Unit,
-    onNavigateToConnection: () -> Unit
+    onMenuClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showTypeFilter by remember { mutableStateOf(false) }
@@ -80,7 +79,7 @@ fun MetersScreen(
                     ) {
                         // "Bağlan" button - navigate to M-Bus connection screen
                         FloatingActionButton(
-                            onClick = onNavigateToConnection,
+                            onClick = { viewModel.connectToMBus() },
                             containerColor = MaterialTheme.colorScheme.primaryContainer,
                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer
                         ) {

@@ -199,6 +199,11 @@ class MetersViewModel @Inject constructor(
         )
     }
 
+    fun connectToMBus() {
+        LoggerService.log(LogTag.HARDWARE, "M-Bus bağlantısı Meters ekranından başlatıldı")
+        serialManager.connect()
+    }
+
     fun startReading() {
         readingJob?.cancel()
         readingJob = viewModelScope.launch {
