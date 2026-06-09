@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.prosayac.app.domain.model.Meter
 import com.prosayac.app.presentation.components.SyncStatusBadge
+import com.prosayac.app.util.serial.ConnectionState
 import com.prosayac.app.presentation.theme.*
 import com.prosayac.app.util.excel.ExcelFormat
 
@@ -39,6 +41,8 @@ fun MetersScreen(
     onMenuClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
+    val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
     var showTypeFilter by remember { mutableStateOf(false) }
     var showStatusFilter by remember { mutableStateOf(false) }
 
@@ -77,13 +81,32 @@ fun MetersScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // "Bağlan" button - navigate to M-Bus connection screen
+                        // Dynamic USB toggle button
                         FloatingActionButton(
-                            onClick = { viewModel.connectToMBus() },
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            onClick = {
+                                when (connectionState) {
+                                    ConnectionState.CONNECTED -> viewModel.disconnectFromMBus()
+                                    else -> viewModel.connectToMBus()
+                                }
+                            },
+                            containerColor = when (connectionState) {
+                                ConnectionState.CONNECTED -> Color(0xFF4CAF50)
+                                else -> MaterialTheme.colorScheme.primaryContainer
+                            },
+                            contentColor = when (connectionState) {
+                                ConnectionState.CONNECTED -> Color.White
+                                else -> MaterialTheme.colorScheme.onPrimaryContainer
+                            }
                         ) {
-                            Icon(Icons.Default.Usb, "M-Bus Bağlan")
+                            when (connectionState) {
+                                ConnectionState.CONNECTING -> CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                ConnectionState.CONNECTED -> Icon(Icons.Default.UsbOff, "Bağlantıyı Kes")
+                                else -> Icon(Icons.Default.Usb, "M-Bus Bağlan")
+                            }
                         }
                         // "Okumaya Başla" FAB - triggers real M-Bus hardware polling
                         ExtendedFloatingActionButton(
@@ -97,13 +120,25 @@ fun MetersScreen(
                         }
                     }
                 }
-                // Cancel button when reading is in progress
+                // Cancel + Pause/Resume when reading is in progress
                 if (state.isReadingInProgress) {
-                    FloatingActionButton(
-                        onClick = { viewModel.cancelReading() },
-                        containerColor = ProMaxError
-                    ) {
-                        Icon(Icons.Default.Close, "Okumayı İptal Et")
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        FloatingActionButton(
+                            onClick = { viewModel.cancelReading() },
+                            containerColor = ProMaxError
+                        ) {
+                            Icon(Icons.Default.Close, "Okumayı İptal Et")
+                        }
+                        FloatingActionButton(
+                            onClick = { viewModel.togglePause() },
+                            containerColor = if (isPaused) Color(0xFF4CAF50) else ChartOrange,
+                            contentColor = Color.White
+                        ) {
+                            Icon(
+                                if (isPaused) Icons.Default.PlayArrow else Icons.Default.Pause,
+                                if (isPaused) "Devam Et" else "Duraklat"
+                            )
+                        }
                     }
                 }
             }

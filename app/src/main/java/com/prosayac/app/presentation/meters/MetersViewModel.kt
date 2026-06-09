@@ -199,9 +199,25 @@ class MetersViewModel @Inject constructor(
         )
     }
 
+    val connectionState: StateFlow<ConnectionState> = serialManager.connectionState
+
+    private val _isPaused = MutableStateFlow(false)
+    val isPaused: StateFlow<Boolean> = _isPaused.asStateFlow()
+
     fun connectToMBus() {
         LoggerService.log(LogTag.HARDWARE, "M-Bus bağlantısı Meters ekranından başlatıldı")
         serialManager.connect()
+    }
+
+    fun disconnectFromMBus() {
+        LoggerService.log(LogTag.HARDWARE, "M-Bus bağlantısı Meters ekranından kesiliyor")
+        serialManager.disconnect()
+    }
+
+    fun togglePause() {
+        _isPaused.value = !_isPaused.value
+        val msg = if (_isPaused.value) "duraklatıldı" else "devam ediyor"
+        LoggerService.log(LogTag.INFO, "Okuma $msg")
     }
 
     fun startReading() {
@@ -247,6 +263,13 @@ class MetersViewModel @Inject constructor(
                     LoggerService.log(LogTag.WARN, "Okuma iptal edildi (scope inactive)")
                     break
                 }
+
+                // Pause check: spin while paused, resume seamlessly
+                while (_isPaused.value) {
+                    delay(500)
+                    if (!isActive) break
+                }
+                if (!isActive) break
 
                 updateMeterStatus(meter.id, "polling")
 
@@ -329,6 +352,8 @@ class MetersViewModel @Inject constructor(
                 }
             }
 
+            _isPaused.value = false
+
             LoggerService.log(
                 LogTag.INFO,
                 "======= HARDWARE OKUMA TAMAMLANDI =======" +
@@ -344,6 +369,7 @@ class MetersViewModel @Inject constructor(
 
     fun cancelReading() {
         LoggerService.log(LogTag.WARN, "Okuma kullanıcı tarafından iptal edildi")
+        _isPaused.value = false
         readingJob?.cancel()
         readingJob = null
         _uiState.value = _uiState.value.copy(
