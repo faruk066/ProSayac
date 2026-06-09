@@ -5,7 +5,7 @@ import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
 import androidx.core.content.FileProvider
-import com.prosayac.app.data.local.dao.ReadingWithMeter
+import com.prosayac.app.domain.model.Meter
 import jxl.Workbook
 import jxl.write.Label
 import jxl.write.Number
@@ -26,7 +26,7 @@ class ExcelExporter @javax.inject.Inject constructor(
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: Context
 ) {
 
-    suspend fun export(readings: List<ReadingWithMeter>, binaAdi: String): Boolean {
+    suspend fun export(meters: List<Meter>, binaAdi: String): Boolean {
         return try {
             // 1. DYNAMIC NAMING
             val safeName = binaAdi.replace(Regex("[^a-zA-Z0-9]"), "_")
@@ -34,6 +34,9 @@ class ExcelExporter @javax.inject.Inject constructor(
             val file = File(context.cacheDir, "${safeName}_${timeStamp}.xls")
 
             // ── Style definitions ─────────────────────────────────────────────────
+            val titleFont = WritableFont(WritableFont.ARIAL, 14, WritableFont.BOLD)
+            val titleFormat = WritableCellFormat(titleFont)
+
             val headerFont = WritableFont(WritableFont.ARIAL, 11, WritableFont.BOLD)
             val headerFormat = WritableCellFormat(headerFont).apply {
                 setBackground(Colour.GRAY_25)
@@ -56,65 +59,89 @@ class ExcelExporter @javax.inject.Inject constructor(
             val workbook = Workbook.createWorkbook(file)
             val sheet = workbook.createSheet("Okumalar", 0)
 
+            // ── Title Row ──────────────────────────────────────────────────────
+            sheet.addCell(Label(0, 0, "Site/Apartman Adı: $binaAdi", titleFormat))
+
             // ── Header Row ─────────────────────────────────────────────────────
             val headers = arrayOf(
-                "Tarih / Saat",
-                "Bina / Blok",
-                "Sayaç No",
-                "Sayaç Tipi",
-                "Okunan Endeks",
-                "Birim"
+                "Daire No",
+                "Isı Sayaç No",
+                "Isı Enerji (kWh)",
+                "Su Sayaç No",
+                "Su Hacim (m³)",
+                "Son Okuma Tarihi"
             )
             for ((i, h) in headers.withIndex()) {
-                sheet.addCell(Label(i, 0, h, headerFormat))
+                sheet.addCell(Label(i, 1, h, headerFormat))
             }
 
             val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
 
-            // ── Data Rows ───────────────────────────────────────────────────────
-            for ((rowIdx, r) in readings.withIndex()) {
-                val row = rowIdx + 1
+            // ── Group by flat number and sort naturally ─────────────────────────
+            val grouped = meters.groupBy { it.flatNumber.ifBlank { "0" } }
+            val sortedFlats = grouped.keys.sortedWith(NATURAL_FLAT_COMPARATOR)
 
-                // 1. Tarih / Saat
-                sheet.addCell(Label(0, row, dateFormat.format(Date(r.readingDate)), dateFormatStyle))
+            var row = 2
+            for (flat in sortedFlats) {
+                val flatMeters = grouped[flat]!!
+                val heatMeter = flatMeters.firstOrNull { it.meterType.contains("Isı", ignoreCase = true) }
+                val waterMeter = flatMeters.firstOrNull { it.meterType.contains("Su", ignoreCase = true) }
 
-                // 2. Bina / Blok (buildingName + flatNumber combined)
-                val buildingText = buildString {
-                    append(r.buildingName.ifBlank { "" })
-                    if (r.flatNumber.isNotBlank()) {
-                        if (isNotEmpty()) append(" / ")
-                        append(r.flatNumber)
+                // Col 0: Daire No
+                sheet.addCell(Label(0, row, flat, dataFormat))
+
+                // Col 1: Isı Sayaç No
+                sheet.addCell(
+                    Label(1, row,
+                        if (heatMeter != null) heatMeter.serialNumber else "Seri No Bulunamadı",
+                        dataFormat)
+                )
+
+                // Col 2: Isı Enerji (kWh)
+                if (heatMeter != null && !heatMeter.lastReading.isNullOrBlank()) {
+                    val value = heatMeter.lastReading.replace(",", ".").toDoubleOrNull()
+                    if (value != null) {
+                        sheet.addCell(Number(2, row, value, numberFormat))
+                    } else {
+                        sheet.addCell(Label(2, row, "0", dataFormat))
                     }
-                }.ifBlank { "-" }
-                sheet.addCell(Label(1, row, buildingText, dataFormat))
-
-                // 3. Sayaç No
-                sheet.addCell(Label(2, row, r.serialNumber.ifBlank { "-" }, dataFormat))
-
-                // 4. Sayaç Tipi
-                sheet.addCell(Label(3, row, r.meterType, dataFormat))
-
-                // 5. Okunan Endeks (NUMERIC)
-                val numericValue = r.readingValue
-                    .replace(",", ".")
-                    .toDoubleOrNull()
-                if (numericValue != null) {
-                    sheet.addCell(Number(4, row, numericValue, numberFormat))
                 } else {
-                    sheet.addCell(Label(4, row, r.readingValue.ifBlank { "-" }, dataFormat))
+                    sheet.addCell(Label(2, row, "0", dataFormat))
                 }
 
-                // 6. Birim (m³ or kWh based on meter type)
-                val unit = when {
-                    r.meterType.contains("Su", ignoreCase = true) -> "m³"
-                    r.meterType.contains("Isı", ignoreCase = true) -> "kWh"
-                    else -> ""
+                // Col 3: Su Sayaç No
+                sheet.addCell(
+                    Label(3, row,
+                        if (waterMeter != null) waterMeter.serialNumber else "Seri No Bulunamadı",
+                        dataFormat)
+                )
+
+                // Col 4: Su Hacim (m³)
+                if (waterMeter != null && !waterMeter.lastReading.isNullOrBlank()) {
+                    val value = waterMeter.lastReading.replace(",", ".").toDoubleOrNull()
+                    if (value != null) {
+                        sheet.addCell(Number(4, row, value, numberFormat))
+                    } else {
+                        sheet.addCell(Label(4, row, "Okunamadı", dataFormat))
+                    }
+                } else {
+                    sheet.addCell(Label(4, row, "Okunamadı", dataFormat))
                 }
-                sheet.addCell(Label(5, row, unit, dataFormat))
+
+                // Col 5: Son Okuma Tarihi
+                val maxDate = listOfNotNull(heatMeter?.lastReadingDate, waterMeter?.lastReadingDate)
+                    .maxOrNull()
+                if (maxDate != null) {
+                    sheet.addCell(Label(5, row, dateFormat.format(Date(maxDate)), dateFormatStyle))
+                } else {
+                    sheet.addCell(Label(5, row, "-", dataFormat))
+                }
+
+                row++
             }
 
             // ── Set column widths ───────────────────────────────────────────────
-            val columnWidths = intArrayOf(20, 25, 18, 18, 18, 10)
+            val columnWidths = intArrayOf(12, 18, 18, 18, 18, 20)
             for (i in 0 until 6) {
                 sheet.setColumnView(i, columnWidths[i])
             }
@@ -157,6 +184,15 @@ class ExcelExporter @javax.inject.Inject constructor(
                 Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
             }
             false
+        }
+    }
+
+    companion object {
+        private val NATURAL_FLAT_COMPARATOR = Comparator<String> { a, b ->
+            val aNum = a.toIntOrNull()
+            val bNum = b.toIntOrNull()
+            if (aNum != null && bNum != null) aNum.compareTo(bNum)
+            else a.compareTo(b)
         }
     }
 }

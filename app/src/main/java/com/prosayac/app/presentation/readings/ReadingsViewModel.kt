@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.Dispatchers
@@ -63,11 +64,14 @@ class ReadingsViewModel @Inject constructor(
             _uiState.value = _uiState.value.copy(isExporting = true)
 
             try {
-                val readings = _uiState.value.readings
-                val buildingName = readings.firstOrNull()?.buildingName?.ifBlank { "Bina" } ?: "Bina"
+                val buildingName = _uiState.value.readings.firstOrNull()?.buildingName?.ifBlank { "Bina" } ?: "Bina"
+
+                val meters = withContext(Dispatchers.IO) {
+                    meterRepository.getAllMeters().first()
+                }
 
                 val success = withContext(Dispatchers.IO) {
-                    excelExporter.export(readings, buildingName)
+                    excelExporter.export(meters, buildingName)
                 }
 
                 _uiState.value = _uiState.value.copy(
