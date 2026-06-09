@@ -532,6 +532,62 @@ object MBusProtocolHandler {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // DIRECT POLL (blind 0x7B — no Calmet wake-up)
+    // ─────────────────────────────────────────────────────────────────────────
+    /**
+     * Polls a single meter using ONLY the 0x7B REQ_UD2 command, skipping the
+     * entire Calmet wake-up sequence (ping, NKE reset, E5 selection).
+     *
+     * This is used as a fallback when [pollMeter] fails, because some older
+     * or battery-save meters (e.g. 280-series) ignore selection frames but
+     * respond to a direct 0x7B request.
+     */
+    suspend fun pollMeterDirect(
+        serialNumber: String,
+        serialManager: MBusSerialManager
+    ): PollOutcome {
+        LoggerService.log(LogTag.HARDWARE, "KÖR OKUMA başlatıldı (Calmet atlanıyor): $serialNumber")
+
+        try {
+            if (serialManager.connectionState.value != ConnectionState.CONNECTED) {
+                return PollOutcome.DeviceNotFound(null)
+            }
+
+            serialManager.sendDirectReadRequest(serialNumber)
+
+            val startTime = System.currentTimeMillis()
+            val response = serialManager.waitForRspUdFrame(timeoutMs = 2000L)
+            val elapsed = System.currentTimeMillis() - startTime
+
+            if (response == null) {
+                LoggerService.log(
+                    LogTag.WARN,
+                    "KÖR OKUMA: $serialNumber yanıt vermedi (${elapsed}ms)"
+                )
+                return PollOutcome.Timeout(serialNumber, elapsed)
+            }
+
+            val result = parseRspUD(response)
+
+            if (!result.isValid || result.readingValue == null) {
+                return PollOutcome.ProtocolError(result.meterId, result.errorMessage ?: "Parse hatası")
+            }
+
+            return PollOutcome.Success(
+                meterId = result.meterId ?: serialNumber,
+                value = result.volume,
+                unit = "m³",
+                energy = result.energy,
+                volume = result.volume
+            )
+
+        } catch (e: Exception) {
+            LoggerService.log(LogTag.ERROR, "KÖR OKUMA hatası [$serialNumber]: ${e.message}")
+            return PollOutcome.ProtocolError(null, "Kör okuma hatası: ${e.message}")
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // LEGACY: pollMeter (backward compatibility, uses sendReadRequest pattern)
     // ─────────────────────────────────────────────────────────────────────────
     /**

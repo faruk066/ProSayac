@@ -2,6 +2,7 @@ package com.prosayac.app.presentation.meters
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -23,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -45,9 +47,9 @@ fun MetersScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
     val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var showTypeFilter by remember { mutableStateOf(false) }
     var showStatusFilter by remember { mutableStateOf(false) }
-    var singlePollMeter by remember { mutableStateOf<Meter?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -322,7 +324,10 @@ fun MetersScreen(
                             readStatus = readStatus,
                             readingValue = readingValue,
                             isReadingInProgress = state.isReadingInProgress,
-                            onSinglePoll = { singlePollMeter = meter }
+                            onSinglePoll = { meter ->
+                                Toast.makeText(context, "Sorgulanıyor: ${meter.serialNumber}", Toast.LENGTH_SHORT).show()
+                                viewModel.pollSingleMeter(meter)
+                            }
                         )
                     }
                 }
@@ -344,42 +349,6 @@ fun MetersScreen(
             options = state.pendingFormatOptions,
             onSelected = { viewModel.onFormatPicked(it) },
             onDismiss = { viewModel.dismissFormatChoice() }
-        )
-    }
-
-    // Single meter poll confirmation dialog
-    singlePollMeter?.let { meter ->
-        AlertDialog(
-            onDismissRequest = { singlePollMeter = null },
-            icon = { Icon(Icons.Default.Usb, null, tint = ProMaxTertiary) },
-            title = { Text("Sayaç Oku", fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    Text(
-                        "${meter.displaySerialNumber} - ${meter.meterType}",
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Bu sayacı şimdi M-Bus üzerinden okumak istiyor musunuz?",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.pollSingleMeter(meter)
-                        singlePollMeter = null
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = ProMaxTertiary)
-                ) { Text("Bu Sayacı Oku") }
-            },
-            dismissButton = {
-                TextButton(onClick = { singlePollMeter = null }) { Text("İptal") }
-            }
         )
     }
 
@@ -574,7 +543,7 @@ fun MeterGridCard(
     readStatus: String? = null,
     readingValue: String? = null,
     isReadingInProgress: Boolean = false,
-    onSinglePoll: (() -> Unit)? = null
+    onSinglePoll: ((Meter) -> Unit)? = null
 ) {
     val statusColor = when (meter.status) {
         com.prosayac.app.domain.model.MeterStatus.READ -> SyncSynced
@@ -606,7 +575,7 @@ fun MeterGridCard(
                 if (onSinglePoll != null) {
                     Modifier.combinedClickable(
                         onClick = {},
-                        onLongClick = onSinglePoll
+                        onLongClick = { onSinglePoll(meter) }
                     )
                 } else {
                     Modifier

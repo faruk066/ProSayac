@@ -367,6 +367,10 @@ class MetersViewModel @Inject constructor(
      * Poll a single meter, update UI state with live status on the card.
      * Shared by the bulk loop, pollSingleMeter(), and pollFailedMeters().
      * Returns "success", "timeout", or "error".
+     *
+     * On failure (timeout / protocol error), automatically retries with a
+     * blind-force 0x7B direct request that skips the Calmet wake-up sequence.
+     * Some meters (e.g. 280-series) ignore E5 selection but respond to 0x7B.
      */
     private suspend fun pollSingleMeterInternal(meter: Meter, index: Int, total: Int): String {
         updateMeterStatus(meter.id, "polling")
@@ -379,10 +383,24 @@ class MetersViewModel @Inject constructor(
             "Sayaç [$index/$total] sorgulanıyor: ${meter.serialNumber}"
         )
 
-        val outcome = MBusProtocolHandler.pollMeter(
+        // First attempt: full Calmet wake-up + E5 selection + REQ_UD2
+        var outcome = MBusProtocolHandler.pollMeter(
             serialNumber = meter.serialNumber,
             serialManager = serialManager
         )
+
+        // Second attempt: blind-force 0x7B — skip Calmet entirely
+        if (outcome is PollOutcome.Timeout || outcome is PollOutcome.ProtocolError || outcome is PollOutcome.DeviceNotFound) {
+            LoggerService.log(
+                LogTag.WARN,
+                "E5 failed, attempting blind 7B request for ${meter.serialNumber}"
+            )
+            updateMeterStatus(meter.id, "polling")
+            outcome = MBusProtocolHandler.pollMeterDirect(
+                serialNumber = meter.serialNumber,
+                serialManager = serialManager
+            )
+        }
 
         return when (outcome) {
             is PollOutcome.Success -> {

@@ -385,6 +385,63 @@ class MBusSerialManager @Inject constructor(
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // SEND DIRECT READ REQUEST (Blind 0x7B — no Calmet wake-up)
+    //
+    // Skips the entire 5-step Calmet wake-up sequence (ping, reset, selection)
+    // and just sends the REQ_UD2 (0x7B) command directly. Some older or
+    // battery-save meters (e.g. 280-series) ignore selection frames but
+    // respond to a direct 0x7B request.
+    // ─────────────────────────────────────────────────────────────────────────
+    suspend fun sendDirectReadRequest(targetSerial: String? = null) = withContext(Dispatchers.IO) {
+        if (serialPort == null) {
+            throw Exception("Port bağlı değil!")
+        }
+
+        // ── AGGRESSIVE BUFFER CLEARING ──
+        synchronized(dataBuffer) {
+            dataBuffer.clear()
+            lastSentBytes.clear()
+        }
+        synchronized(rawBuffer) {
+            rawBuffer.clear()
+            rawResponseCallback = null
+        }
+        e5Callback = null
+        accumulatorCallback = null
+
+        if (!targetSerial.isNullOrEmpty()) {
+            // Normalize and validate serial (same as sendReadRequest)
+            val normalized = targetSerial.trim().replace(Regex("[^0-9A-Fa-f]"), "")
+            if (normalized.length < 8) {
+                throw IllegalArgumentException("Geçersiz seri numarası: $targetSerial (en az 8 hex karakter gerekli)")
+            }
+            val paddedSerial = normalized.padStart(8, '0').takeLast(8)
+            try {
+                paddedSerial.toLong(16)
+            } catch (e: NumberFormatException) {
+                throw IllegalArgumentException("Geçersiz hex seri numarası: $targetSerial")
+            }
+
+            LoggerService.log(
+                LogTag.HARDWARE,
+                "KÖR OKUMA (Calmet atlandı): $targetSerial → $paddedSerial, sadece 7B gönderiliyor"
+            )
+
+            // Aggressive buffer purge before sending
+            purgeAllBuffers()
+
+            // Sleep to let the bus settle (no wake-up sent)
+            delay(150)
+
+            // ── Step E only: Send REQ_UD2 (0x7B) directly ──
+            write(byteArrayOf(0x10.toByte(), 0x7B.toByte(), 0xFD.toByte(), 0x78.toByte(), 0x16.toByte()))
+            LoggerService.log(LogTag.HARDWARE, "KÖR OKUMA: 10 7B FD 78 16 hatta basıldı (uyandırma yapılmadı)")
+        } else {
+            write(byteArrayOf(0x10.toByte(), 0x5B.toByte(), 0xFE.toByte(), 0x59.toByte(), 0x16.toByte()))
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // WAIT FOR E5 (1:1 port of waitForE5 from MBusService.dart)
     // Listens for an 0xE5 byte on the filtered data stream with a timeout.
     // ─────────────────────────────────────────────────────────────────────────
