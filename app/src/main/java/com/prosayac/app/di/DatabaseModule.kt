@@ -91,6 +91,20 @@ object DatabaseModule {
         }
     }
 
+    // Migration from version 2 to 4 (no schema changes, empty migration)
+    private val MIGRATION_2_4 = object : Migration(2, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // No schema changes between v2 and v4
+        }
+    }
+
+    // Migration from version 3 to 4 (no schema changes, empty migration)
+    private val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            // No schema changes between v3 and v4
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -99,7 +113,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "prosayac_database"
         )
-            .addMigrations(MIGRATION_1_4)
+            .addMigrations(MIGRATION_1_4, MIGRATION_2_4, MIGRATION_3_4)
             .build()
     }
 

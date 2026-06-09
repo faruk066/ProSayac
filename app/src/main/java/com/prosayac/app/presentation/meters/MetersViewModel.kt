@@ -70,13 +70,15 @@ class MetersViewModel @Inject constructor(
     val uiState: StateFlow<MetersUiState> = _uiState.asStateFlow()
 
     private var readingJob: Job? = null
+    private var metersJob: Job? = null
 
     init {
         loadMeters()
     }
 
     fun loadMeters() {
-        viewModelScope.launch {
+        metersJob?.cancel()
+        metersJob = viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             meterRepository.getAllMeters()
                 .catch { e ->

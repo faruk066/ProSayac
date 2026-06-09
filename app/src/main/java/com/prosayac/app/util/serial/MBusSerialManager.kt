@@ -158,6 +158,10 @@ class MBusSerialManager @Inject constructor(
      *   RTS       : true
      */
     fun connect(config: SerialConfig = SerialConfig()) {
+        if (_connectionState.value == ConnectionState.CONNECTED) {
+            LoggerService.log(LogTag.WARN, "Zaten bağlı, tekrar bağlanma atlanıyor")
+            return
+        }
         try {
             _connectionState.value = ConnectionState.CONNECTING
             LoggerService.log(LogTag.HARDWARE, "M-Bus bağlantı başlatılıyor... (baud=${config.baudRate})")
