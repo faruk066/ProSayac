@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.prosayac.app.util.log.LoggerService
+import com.prosayac.app.util.log.LogTag
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,11 +50,15 @@ class LogExportService @Inject constructor(
                 type = "text/plain"
                 putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
-            context.startActivity(Intent.createChooser(intent, "Günlükleri Paylaş"))
+            // FLAG_ACTIVITY_NEW_TASK MUST be on the chooser intent, not the inner intent,
+            // when using ApplicationContext on Android 9+ — otherwise it silently fails
+            val chooser = Intent.createChooser(intent, "Günlükleri Paylaş")
+            chooser.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(chooser)
             true
-        } catch (_: Exception) {
+        } catch (e: Exception) {
+            LoggerService.log(LogTag.WARN, "Log paylaşma hatası: ${e.message}")
             false
         }
     }

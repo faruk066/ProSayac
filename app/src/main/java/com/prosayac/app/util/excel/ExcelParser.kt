@@ -606,14 +606,24 @@ class ExcelParser @javax.inject.Inject constructor(
 
     private fun safeGetCellAsText(row: List<String>, cellIndex: Int): String {
         if (cellIndex < 0 || cellIndex >= row.size) return ""
-        val raw = row[cellIndex].trim()
-        // Use string manipulation to strip ".0" suffix instead of converting to Double/Long,
-        // which would strip leading zeros (e.g., "01234567.0" → "01234567" not "1234567")
-        return if (raw.endsWith(".0") && raw.count { it == '.' } == 1) {
-            raw.removeSuffix(".0")
-        } else {
-            raw
+        var text = row[cellIndex].trim()
+        // Handle scientific notation ("4.0339428E7" → "40339428") and ".0" suffixes
+        // without converting through Double/Long which strips leading zeros
+        try {
+            if (text.contains(Regex("[eE]")) || text.matches(Regex("-?\\d+\\.\\d+"))) {
+                val bd = java.math.BigDecimal(text)
+                text = if (bd.remainder(java.math.BigDecimal.ONE).compareTo(java.math.BigDecimal.ZERO) == 0) {
+                    bd.toBigInteger().toString()
+                } else {
+                    bd.toPlainString()
+                }
+            } else {
+                text = text.removeSuffix(".0")
+            }
+        } catch (_: Exception) {
+            text = text.removeSuffix(".0")
         }
+        return text
     }
 
     private fun isRowCompletelyEmpty(row: List<String>): Boolean {
