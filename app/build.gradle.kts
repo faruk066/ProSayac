@@ -8,12 +8,12 @@ plugins {
 
 android {
     namespace = "com.prosayac.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.prosayac.app"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
 
@@ -21,6 +21,9 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        buildConfigField("String", "SUPABASE_URL", "\"https://your-project-id.supabase.co\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"your-anon-key-here\"")
     }
 
     buildTypes {
@@ -48,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -136,6 +140,12 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.5.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // Supabase Kotlin SDK (offline-first sync layer)
+    val supabaseVersion = "3.0.0"
+    implementation("io.github.jan-tennert.supabase:postgrest-kt:$supabaseVersion")
+    implementation("io.github.jan-tennert.supabase:auth-kt:$supabaseVersion")
+    implementation("io.ktor:ktor-client-android:3.0.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
