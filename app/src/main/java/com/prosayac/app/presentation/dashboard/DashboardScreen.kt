@@ -325,7 +325,7 @@ fun BarChart(
     }
     val axisLabelPaint = remember {
         android.graphics.Paint().apply {
-            color = android.graphics.Color.parseColor("#64748B")
+            color = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
             textSize = 22f
             textAlign = android.graphics.Paint.Align.CENTER
             isAntiAlias = true
@@ -495,7 +495,7 @@ fun LineChart(
     // Hoist Paint to prevent allocation per frame during animation
     val lineChartAxisPaint = remember {
         android.graphics.Paint().apply {
-            color = android.graphics.Color.parseColor("#64748B")
+            color = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
             textSize = 20f
             textAlign = android.graphics.Paint.Align.CENTER
             isAntiAlias = true

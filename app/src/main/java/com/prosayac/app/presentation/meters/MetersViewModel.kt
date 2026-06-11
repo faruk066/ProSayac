@@ -413,13 +413,14 @@ class MetersViewModel @Inject constructor(
                 val targetMeterId = matchedMeter?.id ?: meter.id
                 val displaySerial = matchedMeter?.serialNumber ?: meter.serialNumber
 
-                val meterForType = matchedMeter ?: meter
-                val selectedValue = if (meterForType.meterType.contains("Su")) {
-                    String.format(java.util.Locale.US, "%.3f", outcome.volume)
-                } else {
-                    String.format(java.util.Locale.US, "%.3f", outcome.energy)
-                }
-                val selectedUnit = if (meterForType.meterType.contains("Su")) "m³" else "kWh"
+            val meterForType = matchedMeter ?: meter
+            val isWaterMeter = meterForType.meterType.equals(METER_TYPE_WATER, ignoreCase = true)
+            val selectedValue = if (isWaterMeter) {
+                String.format(java.util.Locale.US, "%.3f", outcome.volume)
+            } else {
+                String.format(java.util.Locale.US, "%.3f", outcome.energy)
+            }
+            val selectedUnit = if (isWaterMeter) "m³" else "kWh"
 
                 LoggerService.log(
                     LogTag.INFO,

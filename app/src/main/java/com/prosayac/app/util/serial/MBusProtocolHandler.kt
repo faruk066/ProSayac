@@ -157,9 +157,10 @@ object MBusProtocolHandler {
 
                 // Determine data length from DIF data type
                 val length = dataLength(dataType)
-                // Unknown DIF type: skip this block cleanly — do NOT abort the entire parse.
-                // Manufacturer-specific blocks (e.g. 42 6C) must not invalidate already-parsed values.
-                if (length < 0) continue
+                // Unknown DIF type: break cleanly to preserve already-parsed energy/volume.
+                // Do NOT continue — that would try to parse unknown data bytes as DIF fields,
+                // causing cascading parse failures that corrupt valid results.
+                if (length < 0) break
                 if (i + length > bytes.size) break
 
                 val valueBytes = bytes.copyOfRange(i, i + length)
@@ -180,11 +181,11 @@ object MBusProtocolHandler {
                     0x0C -> rawVal = decodeBcdIntForParse(valueBytes) // BCD encoded (existing)
                     0x0D -> {
                         LoggerService.log(LogTag.WARN, "DIF 0x0D (variable length) atlandı - index $i")
-                        continue  // Skip variable length gracefully
+                        break  // Stop cleanly — variable-length data cannot be safely skipped
                     }
                     else -> {
                         LoggerService.log(LogTag.WARN, "Bilinmeyen DIF tipi: %02X - index $i atlandı".format(dataType))
-                        continue
+                        break  // Stop cleanly — unknown data blocks preserved, already-parsed values valid
                     }
                 }
 
@@ -249,12 +250,13 @@ object MBusProtocolHandler {
             val b = bytes[i]
             val highNibble = (b shr 4) and 0x0F
             val lowNibble = b and 0x0F
-            
-            // Validate BCD: nibbles should be 0-9
+
+            // Invalid BCD nibble: return empty string — caller treats as parse failure
             if (highNibble > 9 || lowNibble > 9) {
-                LoggerService.log(LogTag.WARN, "Invalid BCD nibble detected: byte=$b (0x${b.toString(16).uppercase().padStart(2, '0')}), using uppercase hex fallback")
+                LoggerService.log(LogTag.WARN, "Invalid BCD nibble in meter ID: byte=$b (0x${b.toString(16).uppercase().padStart(2, '0')}), aborting ID parse")
+                return ""
             }
-            
+
             sb.append(highNibble.toString(16).uppercase())
             sb.append(lowNibble.toString(16).uppercase())
         }
@@ -267,46 +269,44 @@ object MBusProtocolHandler {
     // Validates nibbles: valid BCD is 0-9, logs warning for invalid values.
     // ─────────────────────────────────────────────────────────────────────────
     private fun decodeBcdIntForParse(bytes: ByteArray): Double {
-        var res = 0.0
-        var multiplier = 1.0
+        var res = 0L
+        var multiplier = 1L
         for (i in bytes.indices) {
             val b = bytes[i].toInt() and 0xFF
             val low = b and 0x0F
             val high = (b shr 4) and 0x0F
-            
-            // Validate BCD: nibbles should be 0-9
+
             if (low > 9 || high > 9) {
                 LoggerService.log(LogTag.WARN, "Invalid BCD nibble in decodeBcdIntForParse: byte=$b (0x${b.toString(16).uppercase().padStart(2, '0')})")
             }
-            
+
             res += low * multiplier
             multiplier *= 10
             res += high * multiplier
             multiplier *= 10
         }
-        return res
+        return res.toDouble()
     }
 
     /** Visible for testing. */
     fun decodeBcdInt(bytes: List<Int>): Double {
-        var res = 0.0
-        var multiplier = 1.0
+        var res = 0L
+        var multiplier = 1L
         for (i in bytes.indices) {
             val b = bytes[i]
             val low = b and 0x0F
             val high = (b shr 4) and 0x0F
-            
-            // Validate BCD: nibbles should be 0-9
+
             if (low > 9 || high > 9) {
                 LoggerService.log(LogTag.WARN, "Invalid BCD nibble in decodeBcdInt: byte=$b (0x${b.toString(16).uppercase().padStart(2, '0')})")
             }
-            
+
             res += low * multiplier
             multiplier *= 10
             res += high * multiplier
             multiplier *= 10
         }
-        return res
+        return res.toDouble()
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -418,57 +418,54 @@ object MBusProtocolHandler {
         val b = bytes[0].toInt() and 0xFF
         val low = b and 0x0F
         val high = (b shr 4) and 0x0F
-        
-        // Validate BCD: nibbles should be 0-9
+
         if (low > 9 || high > 9) {
             LoggerService.log(LogTag.WARN, "Invalid BCD nibble in decodeBcd2: byte=$b (0x${b.toString(16).uppercase().padStart(2, '0')})")
         }
-        
-        return (high * 10 + low).toDouble()
+
+        return (high * 10L + low).toDouble()
     }
 
     private fun decodeBcd4(bytes: ByteArray): Double {
         if (bytes.size < 2) return 0.0
-        var res = 0.0
-        var multiplier = 1.0
+        var res = 0L
+        var multiplier = 1L
         for (i in 0 until 2) {
             val b = bytes[i].toInt() and 0xFF
             val low = b and 0x0F
             val high = (b shr 4) and 0x0F
-            
-            // Validate BCD: nibbles should be 0-9
+
             if (low > 9 || high > 9) {
                 LoggerService.log(LogTag.WARN, "Invalid BCD nibble in decodeBcd4: byte=$b (0x${b.toString(16).uppercase().padStart(2, '0')})")
             }
-            
+
             res += low * multiplier
             multiplier *= 10
             res += high * multiplier
             multiplier *= 10
         }
-        return res
+        return res.toDouble()
     }
 
     private fun decodeBcd6(bytes: ByteArray): Double {
         if (bytes.size < 3) return 0.0
-        var res = 0.0
-        var multiplier = 1.0
+        var res = 0L
+        var multiplier = 1L
         for (i in 0 until 3) {
             val b = bytes[i].toInt() and 0xFF
             val low = b and 0x0F
             val high = (b shr 4) and 0x0F
-            
-            // Validate BCD: nibbles should be 0-9
+
             if (low > 9 || high > 9) {
                 LoggerService.log(LogTag.WARN, "Invalid BCD nibble in decodeBcd6: byte=$b (0x${b.toString(16).uppercase().padStart(2, '0')})")
             }
-            
+
             res += low * multiplier
             multiplier *= 10
             res += high * multiplier
             multiplier *= 10
         }
-        return res
+        return res.toDouble()
     }
 
     // ─────────────────────────────────────────────────────────────────────────

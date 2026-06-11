@@ -29,7 +29,7 @@ class ExcelExporter @javax.inject.Inject constructor(
     suspend fun export(meters: List<Meter>, binaAdi: String): Boolean {
         // 1. DYNAMIC NAMING
         val safeName = binaAdi.replace(Regex("[^a-zA-Z0-9]"), "_")
-        val timeStamp = SimpleDateFormat("ddMMyy_HHmm", Locale.getDefault()).format(Date())
+        val timeStamp = SimpleDateFormat("ddMMyy_HHmm", java.util.Locale.US).format(Date())
         val file = File(context.cacheDir, "${safeName}_${timeStamp}.xls")
         var workbook: Workbook? = null
         return try {
@@ -76,7 +76,7 @@ class ExcelExporter @javax.inject.Inject constructor(
                 sheet.addCell(Label(i, 1, h, headerFormat))
             }
 
-            val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+            val dateFormat = SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.US)
 
             // ── Group by flat number and sort naturally ─────────────────────────
             val grouped = meters.groupBy { it.flatNumber.ifBlank { "0" } }

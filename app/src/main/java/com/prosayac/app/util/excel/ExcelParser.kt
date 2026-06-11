@@ -289,8 +289,7 @@ class ExcelParser @javax.inject.Inject constructor(
         return s.uppercase()
             .replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O")
             .replace("Ş", "S").replace("Ü", "U")
-            .replace("ç", "C").replace("ğ", "G").replace("ı", "I").replace("ö", "O")
-            .replace("ş", "S").replace("ü", "U")
+        // Note: lowercase replacements removed — uppercase() has already converted all chars
     }
 
     internal fun detectFormats(headerRow: List<String>): List<ExcelFormat> {

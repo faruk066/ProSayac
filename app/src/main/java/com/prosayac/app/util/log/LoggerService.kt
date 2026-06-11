@@ -21,7 +21,7 @@ data class LogEntry(
 ) {
     val formattedTime: String
         get() {
-            val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+            val sdf = SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
             return sdf.format(Date(timestamp))
         }
 
@@ -70,7 +70,7 @@ object LoggerService {
         val sb = StringBuilder()
         sb.appendLine("╔══════════════════════════════════════════════════════════════╗")
         sb.appendLine("║                   SAYAÇ PRO - SİSTEM GÜNLÜKLERİ               ║")
-        sb.appendLine("║                   ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())}                ║")
+        sb.appendLine("║                   ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.US).format(Date())}                ║")
         sb.appendLine("╚══════════════════════════════════════════════════════════════╝")
         sb.appendLine()
         sb.appendLine("Toplam kayıt: ${entries.size}")
