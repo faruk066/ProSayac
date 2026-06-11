@@ -510,9 +510,9 @@ object MBusProtocolHandler {
         // Determine the primary reading value from the parser's auto-detection
         val readingValue = if (result.isValid) {
             if (isWaterMeter) {
-                String.format("%.3f", result.volume)
+                String.format(java.util.Locale.US, "%.3f", result.volume)
             } else { // Heat meter, energy is in kWh
-                String.format("%.3f", result.energy)
+                String.format(java.util.Locale.US, "%.3f", result.energy)
             }
         } else {
             null

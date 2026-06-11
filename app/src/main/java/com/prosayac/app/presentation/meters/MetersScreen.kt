@@ -509,7 +509,7 @@ private fun formatReadingValue(raw: String, meterType: String): String {
         numeric.toLong().toString()
     } else {
         // Use DecimalFormat to avoid scientific notation, trim trailing zeros
-        val df = java.text.DecimalFormat("0.###")
+        val df = java.text.DecimalFormat("0.###", java.text.DecimalFormatSymbols(java.util.Locale.US))
         df.format(numeric)
     }
 
@@ -532,7 +532,7 @@ private fun formatFlatNumber(raw: String): String {
     if (numeric == Math.floor(numeric) && !java.lang.Double.isInfinite(numeric)) {
         return numeric.toLong().toString()
     }
-    val df = java.text.DecimalFormat("0.###")
+    val df = java.text.DecimalFormat("0.###", java.text.DecimalFormatSymbols(java.util.Locale.US))
     return df.format(numeric)
 }
 

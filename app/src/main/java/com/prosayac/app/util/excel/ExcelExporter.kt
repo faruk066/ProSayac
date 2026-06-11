@@ -27,11 +27,12 @@ class ExcelExporter @javax.inject.Inject constructor(
 ) {
 
     suspend fun export(meters: List<Meter>, binaAdi: String): Boolean {
+        // 1. DYNAMIC NAMING
+        val safeName = binaAdi.replace(Regex("[^a-zA-Z0-9]"), "_")
+        val timeStamp = SimpleDateFormat("ddMMyy_HHmm", Locale.getDefault()).format(Date())
+        val file = File(context.cacheDir, "${safeName}_${timeStamp}.xls")
+        var workbook: Workbook? = null
         return try {
-            // 1. DYNAMIC NAMING
-            val safeName = binaAdi.replace(Regex("[^a-zA-Z0-9]"), "_")
-            val timeStamp = SimpleDateFormat("ddMMyy_HHmm", Locale.getDefault()).format(Date())
-            val file = File(context.cacheDir, "${safeName}_${timeStamp}.xls")
 
             // ── Style definitions ─────────────────────────────────────────────────
             val titleFont = WritableFont(WritableFont.ARIAL, 14, WritableFont.BOLD)
@@ -56,8 +57,8 @@ class ExcelExporter @javax.inject.Inject constructor(
             }
 
             // ── Create workbook and sheet ─────────────────────────────────────
-            val workbook = Workbook.createWorkbook(file)
-            val sheet = workbook.createSheet("Okumalar", 0)
+            workbook = Workbook.createWorkbook(file)
+            val sheet = workbook!!.createSheet("Okumalar", 0)
 
             // ── Title Row ──────────────────────────────────────────────────────
             sheet.addCell(Label(0, 0, "Site/Apartman Adı: $binaAdi", titleFormat))
@@ -147,8 +148,7 @@ class ExcelExporter @javax.inject.Inject constructor(
             }
 
             // ── Write and close ───────────────────────────────────────────────
-            workbook.write()
-            workbook.close()
+            workbook!!.write()
 
             // 2. FILE PROVIDER EXPORT
             val uri = FileProvider.getUriForFile(
@@ -184,6 +184,8 @@ class ExcelExporter @javax.inject.Inject constructor(
                 Toast.makeText(context, "Dışa aktarma başarısız: ${e.message}", Toast.LENGTH_LONG).show()
             }
             false
+        } finally {
+            try { workbook?.close() } catch (_: Exception) {}
         }
     }
 

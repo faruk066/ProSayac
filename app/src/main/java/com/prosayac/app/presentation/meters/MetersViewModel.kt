@@ -410,9 +410,9 @@ class MetersViewModel @Inject constructor(
 
                 val meterForType = matchedMeter ?: meter
                 val selectedValue = if (meterForType.meterType.contains("Su")) {
-                    String.format("%.3f", outcome.volume)
+                    String.format(java.util.Locale.US, "%.3f", outcome.volume)
                 } else {
-                    String.format("%.3f", outcome.energy)
+                    String.format(java.util.Locale.US, "%.3f", outcome.energy)
                 }
                 val selectedUnit = if (meterForType.meterType.contains("Su")) "m³" else "kWh"
 

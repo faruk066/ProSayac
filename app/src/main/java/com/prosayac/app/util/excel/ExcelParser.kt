@@ -62,19 +62,34 @@ class ExcelParser @javax.inject.Inject constructor(
         LoggerService.log(LogTag.PARSER, "Native XLSX parse başlatıldı: bina=\"$buildingName\"")
 
         try {
-            val zipBytes = context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: run {
-                    LoggerService.log(LogTag.ERROR, "Excel dosyası açılamadı (inputStream null)")
-                    errors.add(ExcelParseError(0, "Dosya açılamadı"))
-                    return@withContext ExcelParseResult(emptyList(), errors, 0, 0)
+            // Single streaming pass through ZIP — no full-file buffer (OOM safe)
+            val sharedStrings = mutableListOf<String>()
+            val sheetData = mutableListOf<List<String>>()
+
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                ZipInputStream(inputStream).use { zis ->
+                    var entry = zis.nextEntry
+                    while (entry != null) {
+                        when {
+                            entry.name.equals("xl/sharedStrings.xml", ignoreCase = true) -> {
+                                sharedStrings.addAll(extractSharedStrings(zis))
+                            }
+                            entry.name.equals("xl/worksheets/sheet1.xml", ignoreCase = true) ||
+                            entry.name.equals("xl/worksheets/sheet.xml", ignoreCase = true) -> {
+                                sheetData.addAll(parseSheetData(zis, sharedStrings))
+                                break
+                            }
+                        }
+                        entry = zis.nextEntry
+                    }
                 }
+            } ?: run {
+                LoggerService.log(LogTag.ERROR, "Excel dosyası açılamadı (inputStream null)")
+                errors.add(ExcelParseError(0, "Dosya açılamadı"))
+                return@withContext ExcelParseResult(emptyList(), errors, 0, 0)
+            }
 
-            // Pass 1: Extract shared strings
-            val sharedStrings = extractSharedStrings(zipBytes)
             LoggerService.log(LogTag.PARSER, "Shared strings extracted: ${sharedStrings.size}")
-
-            // Pass 2: Parse sheet1.xml
-            val sheetData = parseSheetData(zipBytes, sharedStrings)
 
             if (sheetData.isEmpty()) {
                 LoggerService.log(LogTag.ERROR, "Excel parse edilemedi: sayfa boş veya bulunamadı")
@@ -149,131 +164,110 @@ class ExcelParser @javax.inject.Inject constructor(
     // ZIP & XML EXTRACTION
     // =========================================================================
 
-    private fun extractSharedStrings(zipBytes: ByteArray): List<String> {
+    private fun extractSharedStrings(inputStream: java.io.InputStream): List<String> {
         val sharedStrings = ArrayList<String>()
+        val parser = Xml.newPullParser()
+        parser.setInput(inputStream, "UTF-8")
+        var eventType = parser.eventType
+        var currentText = StringBuilder()
+        var inT = false
 
-        ZipInputStream(zipBytes.inputStream()).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (entry.name.equals("xl/sharedStrings.xml", ignoreCase = true)) {
-                    val parser = Xml.newPullParser()
-                    parser.setInput(zis, "UTF-8")
-                    var eventType = parser.eventType
-                    var currentText = StringBuilder()
-                    var inT = false
-
-                    while (eventType != XmlPullParser.END_DOCUMENT) {
-                        when (eventType) {
-                            XmlPullParser.START_TAG -> {
-                                if (parser.name == "t") {
-                                    inT = true
-                                    currentText.clear()
-                                }
-                            }
-                            XmlPullParser.TEXT -> {
-                                if (inT) {
-                                    currentText.append(parser.text)
-                                }
-                            }
-                            XmlPullParser.END_TAG -> {
-                                if (parser.name == "t") {
-                                    inT = false
-                                    sharedStrings.add(currentText.toString())
-                                }
-                            }
-                        }
-                        eventType = parser.next()
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            when (eventType) {
+                XmlPullParser.START_TAG -> {
+                    if (parser.name == "t") {
+                        inT = true
+                        currentText.clear()
                     }
-                    break
                 }
-                entry = zis.nextEntry
+                XmlPullParser.TEXT -> {
+                    if (inT) {
+                        currentText.append(parser.text)
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    if (parser.name == "t") {
+                        inT = false
+                        sharedStrings.add(currentText.toString())
+                    }
+                }
             }
+            eventType = parser.next()
         }
 
         return sharedStrings
     }
 
-    private fun parseSheetData(zipBytes: ByteArray, sharedStrings: List<String>): List<List<String>> {
+    private fun parseSheetData(inputStream: java.io.InputStream, sharedStrings: List<String>): List<List<String>> {
         val rows = mutableListOf<List<String>>()
 
-        ZipInputStream(zipBytes.inputStream()).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                if (entry.name.equals("xl/worksheets/sheet1.xml", ignoreCase = true) ||
-                    entry.name.equals("xl/worksheets/sheet.xml", ignoreCase = true)
-                ) {
-                    val parser = Xml.newPullParser()
-                    parser.setInput(zis, "UTF-8")
-                    var eventType = parser.eventType
+        val parser = Xml.newPullParser()
+        parser.setInput(inputStream, "UTF-8")
+        var eventType = parser.eventType
 
-                    var currentRow = mutableListOf<String>()
-                    var currentCellValue = StringBuilder()
-                    var isSharedString = false
-                    var inV = false
-                    var columnIndex = 0
-                    var maxColIndex = -1
+        var currentRow = mutableListOf<String>()
+        var currentCellValue = StringBuilder()
+        var isSharedString = false
+        var inV = false
+        var columnIndex = 0
+        var maxColIndex = -1
 
-                    while (eventType != XmlPullParser.END_DOCUMENT) {
-                        when (eventType) {
-                            XmlPullParser.START_TAG -> {
-                                when (parser.name) {
-                                    "row" -> {
-                                        currentRow = mutableListOf()
-                                        columnIndex = 0
-                                        maxColIndex = -1
-                                    }
-                                    "c" -> {
-                                        isSharedString = parser.getAttributeValue(null, "t") == "s"
-                                        val ref = parser.getAttributeValue(null, "r")
-                                        if (ref != null) {
-                                            val colRef = ref.filter { it.isLetter() }
-                                            columnIndex = columnRefToIndex(colRef)
-                                        }
-                                    }
-                                    "v" -> {
-                                        inV = true
-                                        currentCellValue.clear()
-                                    }
-                                }
-                            }
-                            XmlPullParser.TEXT -> {
-                                if (inV) {
-                                    currentCellValue.append(parser.text)
-                                }
-                            }
-                            XmlPullParser.END_TAG -> {
-                                when (parser.name) {
-                                    "v" -> {
-                                        inV = false
-                                        val text = currentCellValue.toString()
-                                        val value = if (isSharedString) {
-                                            val idx = text.toIntOrNull() ?: 0
-                                            sharedStrings.getOrNull(idx) ?: text
-                                        } else {
-                                            text
-                                        }
-                                        while (currentRow.size <= columnIndex) {
-                                            currentRow.add("")
-                                        }
-                                        currentRow[columnIndex] = value
-                                        if (columnIndex > maxColIndex) maxColIndex = columnIndex
-                                    }
-                                    "row" -> {
-                                        if (maxColIndex >= 0) {
-                                            rows.add(currentRow.take(maxColIndex + 1))
-                                        } else if (currentRow.isNotEmpty()) {
-                                            rows.add(currentRow)
-                                        }
-                                    }
-                                }
+        while (eventType != XmlPullParser.END_DOCUMENT) {
+            when (eventType) {
+                XmlPullParser.START_TAG -> {
+                    when (parser.name) {
+                        "row" -> {
+                            currentRow = mutableListOf()
+                            columnIndex = 0
+                            maxColIndex = -1
+                        }
+                        "c" -> {
+                            isSharedString = parser.getAttributeValue(null, "t") == "s"
+                            val ref = parser.getAttributeValue(null, "r")
+                            if (ref != null) {
+                                val colRef = ref.filter { it.isLetter() }
+                                columnIndex = columnRefToIndex(colRef)
                             }
                         }
-                        eventType = parser.next()
+                        "v" -> {
+                            inV = true
+                            currentCellValue.clear()
+                        }
                     }
-                    break
                 }
-                entry = zis.nextEntry
+                XmlPullParser.TEXT -> {
+                    if (inV) {
+                        currentCellValue.append(parser.text)
+                    }
+                }
+                XmlPullParser.END_TAG -> {
+                    when (parser.name) {
+                        "v" -> {
+                            inV = false
+                            val text = currentCellValue.toString()
+                            val value = if (isSharedString) {
+                                val idx = text.toIntOrNull() ?: 0
+                                sharedStrings.getOrNull(idx) ?: text
+                            } else {
+                                text
+                            }
+                            while (currentRow.size <= columnIndex) {
+                                currentRow.add("")
+                            }
+                            currentRow[columnIndex] = value
+                            if (columnIndex > maxColIndex) maxColIndex = columnIndex
+                        }
+                        "row" -> {
+                            if (maxColIndex >= 0) {
+                                rows.add(currentRow.take(maxColIndex + 1))
+                            } else if (currentRow.isNotEmpty()) {
+                                rows.add(currentRow)
+                            }
+                        }
+                    }
+                }
             }
+            eventType = parser.next()
         }
 
         return rows
