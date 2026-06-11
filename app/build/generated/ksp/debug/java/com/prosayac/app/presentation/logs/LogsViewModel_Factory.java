@@ -1,6 +1,6 @@
 package com.prosayac.app.presentation.logs;
 
-import android.content.Context;
+import com.prosayac.app.util.log.LogExportService;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
 import dagger.internal.QualifierMetadata;
@@ -9,7 +9,7 @@ import javax.annotation.processing.Generated;
 import javax.inject.Provider;
 
 @ScopeMetadata
-@QualifierMetadata("dagger.hilt.android.qualifiers.ApplicationContext")
+@QualifierMetadata
 @DaggerGenerated
 @Generated(
     value = "dagger.internal.codegen.ComponentProcessor",
@@ -22,22 +22,22 @@ import javax.inject.Provider;
     "KotlinInternalInJava"
 })
 public final class LogsViewModel_Factory implements Factory<LogsViewModel> {
-  private final Provider<Context> contextProvider;
+  private final Provider<LogExportService> logExportServiceProvider;
 
-  public LogsViewModel_Factory(Provider<Context> contextProvider) {
-    this.contextProvider = contextProvider;
+  public LogsViewModel_Factory(Provider<LogExportService> logExportServiceProvider) {
+    this.logExportServiceProvider = logExportServiceProvider;
   }
 
   @Override
   public LogsViewModel get() {
-    return newInstance(contextProvider.get());
+    return newInstance(logExportServiceProvider.get());
   }
 
-  public static LogsViewModel_Factory create(Provider<Context> contextProvider) {
-    return new LogsViewModel_Factory(contextProvider);
+  public static LogsViewModel_Factory create(Provider<LogExportService> logExportServiceProvider) {
+    return new LogsViewModel_Factory(logExportServiceProvider);
   }
 
-  public static LogsViewModel newInstance(Context context) {
-    return new LogsViewModel(context);
+  public static LogsViewModel newInstance(LogExportService logExportService) {
+    return new LogsViewModel(logExportService);
   }
 }

@@ -2,22 +2,11 @@ package com.prosayac.app.data.local.dao
 
 import androidx.room.*
 import com.prosayac.app.data.local.entity.ReadingEntity
+import com.prosayac.app.domain.model.DailyStats
+import com.prosayac.app.domain.model.MonthlyStats
+import com.prosayac.app.domain.model.ReadingWithMeter
+import com.prosayac.app.domain.model.TypeStats
 import kotlinx.coroutines.flow.Flow
-
-data class ReadingWithMeter(
-    val id: Long,
-    val meterId: Long,
-    val serialNumber: String,
-    val flatNumber: String,
-    val meterType: String,
-    val buildingName: String,
-    val readingValue: String,
-    val readingDate: Long,
-    val isSynced: Boolean,
-    val readingType: String,
-    val notes: String?,
-    val meterStatus: String
-)
 
 @Dao
 interface ReadingDao {
@@ -99,18 +88,5 @@ interface ReadingDao {
     suspend fun deleteAll()
 }
 
-// Data classes for chart stats (not entities, so no @Entity annotation)
-data class DailyStats(
-    val day: String,
-    val count: Int
-)
-
-data class TypeStats(
-    val reading_type: String,
-    val count: Int
-)
-
-data class MonthlyStats(
-    val month: String,
-    val count: Int
-)
+// DailyStats, MonthlyStats, TypeStats, ReadingWithMeter moved to domain.model
+// to maintain clean architecture (domain layer must not depend on data layer)

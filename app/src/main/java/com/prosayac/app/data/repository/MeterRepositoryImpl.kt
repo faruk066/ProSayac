@@ -1,14 +1,15 @@
 package com.prosayac.app.data.repository
 
-import com.prosayac.app.data.local.dao.DailyStats
 import com.prosayac.app.data.local.dao.MeterDao
-import com.prosayac.app.data.local.dao.MonthlyStats
 import com.prosayac.app.data.local.dao.ReadingDao
-import com.prosayac.app.data.local.dao.TypeStats
 import com.prosayac.app.data.local.entity.MeterEntity
 import com.prosayac.app.data.local.entity.ReadingEntity
+import com.prosayac.app.domain.model.DailyStats
 import com.prosayac.app.domain.model.Meter
+import com.prosayac.app.domain.model.MonthlyStats
 import com.prosayac.app.domain.model.Reading
+import com.prosayac.app.domain.model.ReadingWithMeter
+import com.prosayac.app.domain.model.TypeStats
 import com.prosayac.app.domain.repository.MeterRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -97,7 +98,7 @@ class MeterRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getAllReadingsWithMeter(): Flow<List<com.prosayac.app.data.local.dao.ReadingWithMeter>> {
+    override fun getAllReadingsWithMeter(): Flow<List<ReadingWithMeter>> {
         return readingDao.getAllReadingsWithMeter()
     }
 

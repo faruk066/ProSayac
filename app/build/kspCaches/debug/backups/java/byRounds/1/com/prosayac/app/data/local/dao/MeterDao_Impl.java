@@ -15,7 +15,9 @@ import androidx.room.util.CursorUtil;
 import androidx.room.util.DBUtil;
 import androidx.room.util.StringUtil;
 import androidx.sqlite.db.SupportSQLiteStatement;
+import com.prosayac.app.data.local.Converters;
 import com.prosayac.app.data.local.entity.MeterEntity;
+import com.prosayac.app.domain.model.MeterStatus;
 import java.lang.Class;
 import java.lang.Exception;
 import java.lang.Integer;
@@ -40,6 +42,8 @@ public final class MeterDao_Impl implements MeterDao {
   private final RoomDatabase __db;
 
   private final EntityInsertionAdapter<MeterEntity> __insertionAdapterOfMeterEntity;
+
+  private final Converters __converters = new Converters();
 
   private final EntityDeletionOrUpdateAdapter<MeterEntity> __deletionAdapterOfMeterEntity;
 
@@ -68,7 +72,8 @@ public final class MeterDao_Impl implements MeterDao {
         statement.bindString(5, entity.getOwnerName());
         statement.bindString(6, entity.getAddress());
         statement.bindString(7, entity.getBuildingName());
-        statement.bindString(8, entity.getStatus());
+        final String _tmp = __converters.fromMeterStatus(entity.getStatus());
+        statement.bindString(8, _tmp);
         if (entity.getLastReading() == null) {
           statement.bindNull(9);
         } else {
@@ -79,8 +84,8 @@ public final class MeterDao_Impl implements MeterDao {
         } else {
           statement.bindLong(10, entity.getLastReadingDate());
         }
-        final int _tmp = entity.isSynced() ? 1 : 0;
-        statement.bindLong(11, _tmp);
+        final int _tmp_1 = entity.isSynced() ? 1 : 0;
+        statement.bindLong(11, _tmp_1);
         statement.bindLong(12, entity.getCreatedAt());
       }
     };
@@ -114,7 +119,8 @@ public final class MeterDao_Impl implements MeterDao {
         statement.bindString(5, entity.getOwnerName());
         statement.bindString(6, entity.getAddress());
         statement.bindString(7, entity.getBuildingName());
-        statement.bindString(8, entity.getStatus());
+        final String _tmp = __converters.fromMeterStatus(entity.getStatus());
+        statement.bindString(8, _tmp);
         if (entity.getLastReading() == null) {
           statement.bindNull(9);
         } else {
@@ -125,8 +131,8 @@ public final class MeterDao_Impl implements MeterDao {
         } else {
           statement.bindLong(10, entity.getLastReadingDate());
         }
-        final int _tmp = entity.isSynced() ? 1 : 0;
-        statement.bindLong(11, _tmp);
+        final int _tmp_1 = entity.isSynced() ? 1 : 0;
+        statement.bindLong(11, _tmp_1);
         statement.bindLong(12, entity.getCreatedAt());
         statement.bindLong(13, entity.getId());
       }
@@ -322,8 +328,10 @@ public final class MeterDao_Impl implements MeterDao {
             _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
             final String _tmpBuildingName;
             _tmpBuildingName = _cursor.getString(_cursorIndexOfBuildingName);
-            final String _tmpStatus;
-            _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            final MeterStatus _tmpStatus;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfStatus);
+            _tmpStatus = __converters.toMeterStatus(_tmp);
             final String _tmpLastReading;
             if (_cursor.isNull(_cursorIndexOfLastReading)) {
               _tmpLastReading = null;
@@ -337,9 +345,9 @@ public final class MeterDao_Impl implements MeterDao {
               _tmpLastReadingDate = _cursor.getLong(_cursorIndexOfLastReadingDate);
             }
             final boolean _tmpIsSynced;
-            final int _tmp;
-            _tmp = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp != 0;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_1 != 0;
             final long _tmpCreatedAt;
             _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
             _item = new MeterEntity(_tmpId,_tmpSerialNumber,_tmpFlatNumber,_tmpMeterType,_tmpOwnerName,_tmpAddress,_tmpBuildingName,_tmpStatus,_tmpLastReading,_tmpLastReadingDate,_tmpIsSynced,_tmpCreatedAt);
@@ -356,6 +364,80 @@ public final class MeterDao_Impl implements MeterDao {
         _statement.release();
       }
     });
+  }
+
+  @Override
+  public Object getAllMetersOnce(final Continuation<? super List<MeterEntity>> $completion) {
+    final String _sql = "SELECT * FROM meters";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<MeterEntity>>() {
+      @Override
+      @NonNull
+      public List<MeterEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfSerialNumber = CursorUtil.getColumnIndexOrThrow(_cursor, "serial_number");
+          final int _cursorIndexOfFlatNumber = CursorUtil.getColumnIndexOrThrow(_cursor, "flat_number");
+          final int _cursorIndexOfMeterType = CursorUtil.getColumnIndexOrThrow(_cursor, "meter_type");
+          final int _cursorIndexOfOwnerName = CursorUtil.getColumnIndexOrThrow(_cursor, "owner_name");
+          final int _cursorIndexOfAddress = CursorUtil.getColumnIndexOrThrow(_cursor, "address");
+          final int _cursorIndexOfBuildingName = CursorUtil.getColumnIndexOrThrow(_cursor, "building_name");
+          final int _cursorIndexOfStatus = CursorUtil.getColumnIndexOrThrow(_cursor, "status");
+          final int _cursorIndexOfLastReading = CursorUtil.getColumnIndexOrThrow(_cursor, "last_reading");
+          final int _cursorIndexOfLastReadingDate = CursorUtil.getColumnIndexOrThrow(_cursor, "last_reading_date");
+          final int _cursorIndexOfIsSynced = CursorUtil.getColumnIndexOrThrow(_cursor, "is_synced");
+          final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "created_at");
+          final List<MeterEntity> _result = new ArrayList<MeterEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final MeterEntity _item;
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final String _tmpSerialNumber;
+            _tmpSerialNumber = _cursor.getString(_cursorIndexOfSerialNumber);
+            final String _tmpFlatNumber;
+            _tmpFlatNumber = _cursor.getString(_cursorIndexOfFlatNumber);
+            final String _tmpMeterType;
+            _tmpMeterType = _cursor.getString(_cursorIndexOfMeterType);
+            final String _tmpOwnerName;
+            _tmpOwnerName = _cursor.getString(_cursorIndexOfOwnerName);
+            final String _tmpAddress;
+            _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
+            final String _tmpBuildingName;
+            _tmpBuildingName = _cursor.getString(_cursorIndexOfBuildingName);
+            final MeterStatus _tmpStatus;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfStatus);
+            _tmpStatus = __converters.toMeterStatus(_tmp);
+            final String _tmpLastReading;
+            if (_cursor.isNull(_cursorIndexOfLastReading)) {
+              _tmpLastReading = null;
+            } else {
+              _tmpLastReading = _cursor.getString(_cursorIndexOfLastReading);
+            }
+            final Long _tmpLastReadingDate;
+            if (_cursor.isNull(_cursorIndexOfLastReadingDate)) {
+              _tmpLastReadingDate = null;
+            } else {
+              _tmpLastReadingDate = _cursor.getLong(_cursorIndexOfLastReadingDate);
+            }
+            final boolean _tmpIsSynced;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_1 != 0;
+            final long _tmpCreatedAt;
+            _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
+            _item = new MeterEntity(_tmpId,_tmpSerialNumber,_tmpFlatNumber,_tmpMeterType,_tmpOwnerName,_tmpAddress,_tmpBuildingName,_tmpStatus,_tmpLastReading,_tmpLastReadingDate,_tmpIsSynced,_tmpCreatedAt);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
   }
 
   @Override
@@ -399,8 +481,10 @@ public final class MeterDao_Impl implements MeterDao {
             _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
             final String _tmpBuildingName;
             _tmpBuildingName = _cursor.getString(_cursorIndexOfBuildingName);
-            final String _tmpStatus;
-            _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            final MeterStatus _tmpStatus;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfStatus);
+            _tmpStatus = __converters.toMeterStatus(_tmp);
             final String _tmpLastReading;
             if (_cursor.isNull(_cursorIndexOfLastReading)) {
               _tmpLastReading = null;
@@ -414,9 +498,9 @@ public final class MeterDao_Impl implements MeterDao {
               _tmpLastReadingDate = _cursor.getLong(_cursorIndexOfLastReadingDate);
             }
             final boolean _tmpIsSynced;
-            final int _tmp;
-            _tmp = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp != 0;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_1 != 0;
             final long _tmpCreatedAt;
             _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
             _result = new MeterEntity(_tmpId,_tmpSerialNumber,_tmpFlatNumber,_tmpMeterType,_tmpOwnerName,_tmpAddress,_tmpBuildingName,_tmpStatus,_tmpLastReading,_tmpLastReadingDate,_tmpIsSynced,_tmpCreatedAt);
@@ -473,8 +557,10 @@ public final class MeterDao_Impl implements MeterDao {
             _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
             final String _tmpBuildingName;
             _tmpBuildingName = _cursor.getString(_cursorIndexOfBuildingName);
-            final String _tmpStatus;
-            _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            final MeterStatus _tmpStatus;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfStatus);
+            _tmpStatus = __converters.toMeterStatus(_tmp);
             final String _tmpLastReading;
             if (_cursor.isNull(_cursorIndexOfLastReading)) {
               _tmpLastReading = null;
@@ -488,9 +574,9 @@ public final class MeterDao_Impl implements MeterDao {
               _tmpLastReadingDate = _cursor.getLong(_cursorIndexOfLastReadingDate);
             }
             final boolean _tmpIsSynced;
-            final int _tmp;
-            _tmp = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp != 0;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_1 != 0;
             final long _tmpCreatedAt;
             _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
             _item = new MeterEntity(_tmpId,_tmpSerialNumber,_tmpFlatNumber,_tmpMeterType,_tmpOwnerName,_tmpAddress,_tmpBuildingName,_tmpStatus,_tmpLastReading,_tmpLastReadingDate,_tmpIsSynced,_tmpCreatedAt);
@@ -550,8 +636,10 @@ public final class MeterDao_Impl implements MeterDao {
             _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
             final String _tmpBuildingName;
             _tmpBuildingName = _cursor.getString(_cursorIndexOfBuildingName);
-            final String _tmpStatus;
-            _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            final MeterStatus _tmpStatus;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfStatus);
+            _tmpStatus = __converters.toMeterStatus(_tmp);
             final String _tmpLastReading;
             if (_cursor.isNull(_cursorIndexOfLastReading)) {
               _tmpLastReading = null;
@@ -565,9 +653,9 @@ public final class MeterDao_Impl implements MeterDao {
               _tmpLastReadingDate = _cursor.getLong(_cursorIndexOfLastReadingDate);
             }
             final boolean _tmpIsSynced;
-            final int _tmp;
-            _tmp = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp != 0;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_1 != 0;
             final long _tmpCreatedAt;
             _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
             _item = new MeterEntity(_tmpId,_tmpSerialNumber,_tmpFlatNumber,_tmpMeterType,_tmpOwnerName,_tmpAddress,_tmpBuildingName,_tmpStatus,_tmpLastReading,_tmpLastReadingDate,_tmpIsSynced,_tmpCreatedAt);
@@ -629,8 +717,10 @@ public final class MeterDao_Impl implements MeterDao {
             _tmpAddress = _cursor.getString(_cursorIndexOfAddress);
             final String _tmpBuildingName;
             _tmpBuildingName = _cursor.getString(_cursorIndexOfBuildingName);
-            final String _tmpStatus;
-            _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            final MeterStatus _tmpStatus;
+            final String _tmp;
+            _tmp = _cursor.getString(_cursorIndexOfStatus);
+            _tmpStatus = __converters.toMeterStatus(_tmp);
             final String _tmpLastReading;
             if (_cursor.isNull(_cursorIndexOfLastReading)) {
               _tmpLastReading = null;
@@ -644,9 +734,9 @@ public final class MeterDao_Impl implements MeterDao {
               _tmpLastReadingDate = _cursor.getLong(_cursorIndexOfLastReadingDate);
             }
             final boolean _tmpIsSynced;
-            final int _tmp;
-            _tmp = _cursor.getInt(_cursorIndexOfIsSynced);
-            _tmpIsSynced = _tmp != 0;
+            final int _tmp_1;
+            _tmp_1 = _cursor.getInt(_cursorIndexOfIsSynced);
+            _tmpIsSynced = _tmp_1 != 0;
             final long _tmpCreatedAt;
             _tmpCreatedAt = _cursor.getLong(_cursorIndexOfCreatedAt);
             _item = new MeterEntity(_tmpId,_tmpSerialNumber,_tmpFlatNumber,_tmpMeterType,_tmpOwnerName,_tmpAddress,_tmpBuildingName,_tmpStatus,_tmpLastReading,_tmpLastReadingDate,_tmpIsSynced,_tmpCreatedAt);

@@ -2,7 +2,7 @@ package com.prosayac.app.presentation.readings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.prosayac.app.data.local.dao.ReadingWithMeter
+import com.prosayac.app.domain.model.ReadingWithMeter
 import com.prosayac.app.domain.repository.MeterRepository
 import com.prosayac.app.util.excel.ExcelExporter
 import dagger.hilt.android.lifecycle.HiltViewModel

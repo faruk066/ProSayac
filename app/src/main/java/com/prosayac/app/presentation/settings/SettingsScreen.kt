@@ -172,16 +172,16 @@ fun SettingsScreen(
             title = { Text("Verileri Sıfırla", fontWeight = FontWeight.Bold, color = ProMaxError) },
             text = { Text("Tüm sayaçlar ve okuma kayıtları kalıcı olarak silinecektir. Bu işlem geri alınamaz!") },
             confirmButton = {
-                TextButton(onClick = { showResetDialog = false }) { Text("İptal") }
+                TextButton(onClick = { 
+                    viewModel.deleteAllData()
+                    showResetDialog = false 
+                }) {
+                    Text("Tümünü Sil", color = ProMaxError)
+                }
             },
-dismissButton = {
-                        TextButton(onClick = { 
-                            viewModel.deleteAllData()
-                            showResetDialog = false 
-                        }) {
-                            Text("Tümünü Sil", color = ProMaxError)
-                        }
-                    }
+            dismissButton = {
+                TextButton(onClick = { showResetDialog = false }) { Text("İptal") }
+            }
         )
     }
 }

@@ -43,6 +43,8 @@ class MBusSerialManager @Inject constructor(
     private var permissionIntent: PendingIntent? = null
     private var receiverRegistered = false
 
+    private val managerScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     // ── Echo Cancellation (1:1 port from MBusService.dart) ──
     private val lastSentBytes = mutableListOf<Byte>()
     private val dataBuffer = mutableListOf<Byte>()
@@ -94,6 +96,7 @@ class MBusSerialManager @Inject constructor(
 
     fun cleanup() {
         try {
+            managerScope.cancel()
             ioManager?.stop()
             ioManager = null
             serialPort?.close()
@@ -237,7 +240,7 @@ class MBusSerialManager @Inject constructor(
             val config = pendingConfig ?: SerialConfig()
             pendingConfig = null
             // Offload blocking USB I/O to IO dispatcher to prevent ANR on main thread
-            CoroutineScope(Dispatchers.IO + SupervisorJob()).launch {
+            managerScope.launch {
                 connect(config)
             }
         } else {

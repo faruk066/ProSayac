@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.prosayac.app.data.local.dao.ReadingWithMeter
+import com.prosayac.app.domain.model.ReadingWithMeter
 import com.prosayac.app.presentation.components.SyncStatusBadge
 import com.prosayac.app.presentation.theme.*
 import java.text.SimpleDateFormat

@@ -1,10 +1,11 @@
 package com.prosayac.app.domain.repository
 
-import com.prosayac.app.data.local.dao.DailyStats
-import com.prosayac.app.data.local.dao.MonthlyStats
-import com.prosayac.app.data.local.dao.TypeStats
+import com.prosayac.app.domain.model.DailyStats
 import com.prosayac.app.domain.model.Meter
+import com.prosayac.app.domain.model.MonthlyStats
 import com.prosayac.app.domain.model.Reading
+import com.prosayac.app.domain.model.ReadingWithMeter
+import com.prosayac.app.domain.model.TypeStats
 import kotlinx.coroutines.flow.Flow
 
 interface MeterRepository {
@@ -29,7 +30,7 @@ interface MeterRepository {
 
     // Readings
     fun getAllReadings(): Flow<List<Reading>>
-    fun getAllReadingsWithMeter(): Flow<List<com.prosayac.app.data.local.dao.ReadingWithMeter>>
+    fun getAllReadingsWithMeter(): Flow<List<ReadingWithMeter>>
     fun getReadingsByMeterId(meterId: Long): Flow<List<Reading>>
     fun getReadingsByDateRange(startDate: Long, endDate: Long): Flow<List<Reading>>
     fun getTotalReadingCount(): Flow<Int>

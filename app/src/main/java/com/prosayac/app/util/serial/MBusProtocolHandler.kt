@@ -56,6 +56,10 @@ object MBusProtocolHandler {
      * @return ParseResult with extracted meter ID, energy, and volume values
      */
     fun parseData(bytes: ByteArray): ParseResult {
+        if (bytes.isEmpty()) {
+            return ParseResult(null, 0.0, 0.0, "", false, "Boş veri")
+        }
+
         val isWaterMeter = if (bytes.size > 14) {
             val medium = bytes[14].toInt() and 0xFF  // Medium is at byte 14, NOT byte 6 (which is CI)
             medium == MEDIUM_WARM_WATER || medium == MEDIUM_COLD_WATER
@@ -94,10 +98,6 @@ object MBusProtocolHandler {
                     }
                 }
             }
-        }
-
-        if (bytes.isEmpty()) {
-            return ParseResult(null, 0.0, 0.0, rawHex, false, "Boş veri")
         }
 
         // Check start delimiter 0x68
@@ -322,6 +322,9 @@ object MBusProtocolHandler {
             0x05 -> 4
             0x06 -> 6
             0x07 -> 8
+            0x09 -> 1 // 2-digit BCD
+            0x0A -> 2 // 4-digit BCD
+            0x0B -> 3 // 6-digit BCD
             0x0C -> 4
             0x0D -> -1
             0x0E -> 6
@@ -336,16 +339,11 @@ object MBusProtocolHandler {
     private fun decodeInt32(bytes: ByteArray): Double {
         if (bytes.size < 4) return 0.0
 
-        // Build as unsigned int first (all bytes treated as 0..255)
-        var v = (bytes[0].toInt() and 0xFF) or
+        val v = (bytes[0].toInt() and 0xFF) or
                 ((bytes[1].toInt() and 0xFF) shl 8) or
                 ((bytes[2].toInt() and 0xFF) shl 16) or
                 ((bytes[3].toInt() and 0xFF) shl 24)
 
-        // Sign-extend if bit 31 is set
-        if ((v and 0x80000000.toInt()) != 0) {
-            return (v.toLong() - 0x100000000L).toDouble()  // convert to negative via Long
-        }
         return v.toDouble()
     }
 

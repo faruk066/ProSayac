@@ -29,6 +29,9 @@ import com.prosayac.app.presentation.readings.ReadingsViewModel;
 import com.prosayac.app.presentation.readings.ReadingsViewModel_HiltModules_KeyModule_ProvideFactory;
 import com.prosayac.app.presentation.settings.SettingsViewModel;
 import com.prosayac.app.presentation.settings.SettingsViewModel_HiltModules_KeyModule_ProvideFactory;
+import com.prosayac.app.util.excel.ExcelExporter;
+import com.prosayac.app.util.excel.ExcelParser;
+import com.prosayac.app.util.log.LogExportService;
 import com.prosayac.app.util.serial.MBusSerialManager;
 import dagger.hilt.android.ActivityRetainedLifecycle;
 import dagger.hilt.android.ViewModelLifecycle;
@@ -442,6 +445,14 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
 
     }
 
+    private ExcelParser excelParser() {
+      return new ExcelParser(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+    }
+
+    private ExcelExporter excelExporter() {
+      return new ExcelExporter(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+    }
+
     @SuppressWarnings("unchecked")
     private void initialize(final SavedStateHandle savedStateHandleParam,
         final ViewModelLifecycle viewModelLifecycleParam) {
@@ -491,13 +502,13 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
           return (T) new DashboardViewModel(singletonCImpl.meterRepositoryImplProvider.get());
 
           case 2: // com.prosayac.app.presentation.logs.LogsViewModel 
-          return (T) new LogsViewModel(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+          return (T) new LogsViewModel(singletonCImpl.logExportServiceProvider.get());
 
           case 3: // com.prosayac.app.presentation.meters.MetersViewModel 
-          return (T) new MetersViewModel(singletonCImpl.meterRepositoryImplProvider.get(), singletonCImpl.provideSerialManagerProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+          return (T) new MetersViewModel(singletonCImpl.meterRepositoryImplProvider.get(), singletonCImpl.provideSerialManagerProvider.get(), viewModelCImpl.excelParser());
 
           case 4: // com.prosayac.app.presentation.readings.ReadingsViewModel 
-          return (T) new ReadingsViewModel(singletonCImpl.meterRepositoryImplProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
+          return (T) new ReadingsViewModel(singletonCImpl.meterRepositoryImplProvider.get(), viewModelCImpl.excelExporter());
 
           case 5: // com.prosayac.app.presentation.settings.SettingsViewModel 
           return (T) new SettingsViewModel(singletonCImpl.userPreferencesProvider.get(), singletonCImpl.meterRepositoryImplProvider.get());
@@ -594,6 +605,8 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
 
     private Provider<MeterRepositoryImpl> meterRepositoryImplProvider;
 
+    private Provider<LogExportService> logExportServiceProvider;
+
     private SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
       initialize(applicationContextModuleParam);
@@ -608,6 +621,7 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
       this.provideMeterDaoProvider = DoubleCheck.provider(new SwitchingProvider<MeterDao>(singletonCImpl, 3));
       this.provideReadingDaoProvider = DoubleCheck.provider(new SwitchingProvider<ReadingDao>(singletonCImpl, 5));
       this.meterRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<MeterRepositoryImpl>(singletonCImpl, 2));
+      this.logExportServiceProvider = DoubleCheck.provider(new SwitchingProvider<LogExportService>(singletonCImpl, 6));
     }
 
     @Override
@@ -660,6 +674,9 @@ public final class DaggerProSayacApp_HiltComponents_SingletonC {
 
           case 5: // com.prosayac.app.data.local.dao.ReadingDao 
           return (T) DatabaseModule_ProvideReadingDaoFactory.provideReadingDao(singletonCImpl.provideAppDatabaseProvider.get());
+
+          case 6: // com.prosayac.app.util.log.LogExportService 
+          return (T) new LogExportService(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);
         }

@@ -90,9 +90,11 @@ class MainActivity : ComponentActivity() {
         serialManager.reset()
     }
 
-    override fun onStop() {
-        super.onStop()
-        serialManager.cleanup()
+    override fun onDestroy() {
+        super.onDestroy()
+        if (isFinishing) {
+            serialManager.cleanup()
+        }
     }
 }
 

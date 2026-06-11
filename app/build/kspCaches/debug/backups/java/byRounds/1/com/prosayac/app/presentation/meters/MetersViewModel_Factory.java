@@ -1,7 +1,7 @@
 package com.prosayac.app.presentation.meters;
 
-import android.content.Context;
 import com.prosayac.app.domain.repository.MeterRepository;
+import com.prosayac.app.util.excel.ExcelParser;
 import com.prosayac.app.util.serial.MBusSerialManager;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
@@ -11,7 +11,7 @@ import javax.annotation.processing.Generated;
 import javax.inject.Provider;
 
 @ScopeMetadata
-@QualifierMetadata("dagger.hilt.android.qualifiers.ApplicationContext")
+@QualifierMetadata
 @DaggerGenerated
 @Generated(
     value = "dagger.internal.codegen.ComponentProcessor",
@@ -28,27 +28,29 @@ public final class MetersViewModel_Factory implements Factory<MetersViewModel> {
 
   private final Provider<MBusSerialManager> serialManagerProvider;
 
-  private final Provider<Context> contextProvider;
+  private final Provider<ExcelParser> excelParserProvider;
 
   public MetersViewModel_Factory(Provider<MeterRepository> meterRepositoryProvider,
-      Provider<MBusSerialManager> serialManagerProvider, Provider<Context> contextProvider) {
+      Provider<MBusSerialManager> serialManagerProvider,
+      Provider<ExcelParser> excelParserProvider) {
     this.meterRepositoryProvider = meterRepositoryProvider;
     this.serialManagerProvider = serialManagerProvider;
-    this.contextProvider = contextProvider;
+    this.excelParserProvider = excelParserProvider;
   }
 
   @Override
   public MetersViewModel get() {
-    return newInstance(meterRepositoryProvider.get(), serialManagerProvider.get(), contextProvider.get());
+    return newInstance(meterRepositoryProvider.get(), serialManagerProvider.get(), excelParserProvider.get());
   }
 
   public static MetersViewModel_Factory create(Provider<MeterRepository> meterRepositoryProvider,
-      Provider<MBusSerialManager> serialManagerProvider, Provider<Context> contextProvider) {
-    return new MetersViewModel_Factory(meterRepositoryProvider, serialManagerProvider, contextProvider);
+      Provider<MBusSerialManager> serialManagerProvider,
+      Provider<ExcelParser> excelParserProvider) {
+    return new MetersViewModel_Factory(meterRepositoryProvider, serialManagerProvider, excelParserProvider);
   }
 
   public static MetersViewModel newInstance(MeterRepository meterRepository,
-      MBusSerialManager serialManager, Context context) {
-    return new MetersViewModel(meterRepository, serialManager, context);
+      MBusSerialManager serialManager, ExcelParser excelParser) {
+    return new MetersViewModel(meterRepository, serialManager, excelParser);
   }
 }

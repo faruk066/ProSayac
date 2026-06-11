@@ -79,7 +79,7 @@ class MetersViewModel @Inject constructor(
 
     fun loadMeters() {
         metersJob?.cancel()
-        metersJob = viewModelScope.launch {
+        metersJob = viewModelScope.launch(Dispatchers.IO) {
             _uiState.value = _uiState.value.copy(isLoading = true)
             meterRepository.getAllMeters()
                 .catch { e ->
