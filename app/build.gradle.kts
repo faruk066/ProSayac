@@ -81,6 +81,23 @@ android {
             isUniversalApk = false
         }
     }
+	signingConfigs {
+        create("release") {
+            storeFile = file("sayac_pro_key.jks")
+            storePassword = "unkfrk66"
+            keyAlias = "sayac_pro_alias"
+            keyPassword = "unkfrk66"
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true // Kod küçültme ve obfuscation (isteğe bağlı)
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // 2. İmza ayarını release derlemesine bağla
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
 }
 
 dependencies {
