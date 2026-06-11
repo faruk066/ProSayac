@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.prosayac.app.data.local.database.AppDatabase
 import com.prosayac.app.data.local.dao.MeterDao
 import com.prosayac.app.data.local.dao.ReadingDao
+import com.prosayac.app.data.local.dao.SiteDao
 import com.prosayac.app.util.serial.MBusSerialManager
 import dagger.Module
 import dagger.Provides
@@ -105,6 +106,19 @@ object DatabaseModule {
         }
     }
 
+    // Migration from version 4 to 5 (add sites table)
+    private val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("""
+                CREATE TABLE IF NOT EXISTS sites (
+                    id TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    address TEXT
+                )
+            """.trimIndent())
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -113,7 +127,7 @@ object DatabaseModule {
             AppDatabase::class.java,
             "prosayac_database"
         )
-            .addMigrations(MIGRATION_1_4, MIGRATION_2_4, MIGRATION_3_4)
+            .addMigrations(MIGRATION_1_4, MIGRATION_2_4, MIGRATION_3_4, MIGRATION_4_5)
             .build()
     }
 
@@ -127,6 +141,12 @@ object DatabaseModule {
     @Singleton
     fun provideReadingDao(database: AppDatabase): ReadingDao {
         return database.readingDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSiteDao(database: AppDatabase): SiteDao {
+        return database.siteDao()
     }
 
     @Provides

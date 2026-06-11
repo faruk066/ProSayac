@@ -11,7 +11,8 @@ enum class LogTag(val displayName: String) {
     WARN("WARN"),
     ERROR("ERROR"),
     HARDWARE("HARDWARE"),
-    PARSER("PARSER")
+    PARSER("PARSER"),
+    SYNC("SYNC")
 }
 
 data class LogEntry(

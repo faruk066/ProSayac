@@ -6,6 +6,7 @@ import com.prosayac.app.domain.model.DailyStats
 import com.prosayac.app.domain.model.MonthlyStats
 import com.prosayac.app.domain.model.TypeStats
 import com.prosayac.app.domain.repository.MeterRepository
+import com.prosayac.app.domain.repository.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
@@ -41,13 +42,19 @@ data class DonutSegmentUi(
 
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
-    private val meterRepository: MeterRepository
+    private val meterRepository: MeterRepository,
+    private val syncRepository: SyncRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
+        // Trigger Supabase sync once on startup
+        viewModelScope.launch {
+            syncRepository.fetchAndSaveAssignments()
+        }
+
         // Single permanent collector for reactive meter counts — runs once for ViewModel lifetime
         viewModelScope.launch {
             combine(

@@ -266,6 +266,7 @@ fun LogEntryRow(entry: LogEntry) {
         LogTag.ERROR -> TerminalErrorRed
         LogTag.HARDWARE -> TerminalHardwareCyan
         LogTag.PARSER -> TerminalParserViolet
+        LogTag.SYNC -> TerminalInfoWhite
     }
 
     Row(

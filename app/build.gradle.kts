@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("androidx.room") version "2.6.1" apply false
@@ -146,6 +147,14 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:postgrest-kt:$supabaseVersion")
     implementation("io.github.jan-tennert.supabase:auth-kt:$supabaseVersion")
     implementation("io.ktor:ktor-client-android:3.0.0")
+
+    // Kotlin serialization (for Supabase DTO decoding — force 1.6.x for Kotlin 1.9 compat)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2") {
+        version { strictly("1.6.2") }
+    }
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.2") {
+        version { strictly("1.6.2") }
+    }
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
