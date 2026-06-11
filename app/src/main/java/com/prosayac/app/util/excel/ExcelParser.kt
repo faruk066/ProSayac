@@ -62,32 +62,42 @@ class ExcelParser @javax.inject.Inject constructor(
         LoggerService.log(LogTag.PARSER, "Native XLSX parse başlatıldı: bina=\"$buildingName\"")
 
         try {
-            // Single streaming pass through ZIP — no full-file buffer (OOM safe)
-            val sharedStrings = mutableListOf<String>()
-            val sheetData = mutableListOf<List<String>>()
-
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+            // First pass: extract shared strings from its own ZipInputStream
+            val sharedStrings = context.contentResolver.openInputStream(uri)?.use { inputStream ->
                 ZipInputStream(inputStream).use { zis ->
                     var entry = zis.nextEntry
+                    val result = mutableListOf<String>()
                     while (entry != null) {
-                        when {
-                            entry.name.equals("xl/sharedStrings.xml", ignoreCase = true) -> {
-                                sharedStrings.addAll(extractSharedStrings(zis))
-                            }
-                            entry.name.equals("xl/worksheets/sheet1.xml", ignoreCase = true) ||
-                            entry.name.equals("xl/worksheets/sheet.xml", ignoreCase = true) -> {
-                                sheetData.addAll(parseSheetData(zis, sharedStrings))
-                                break
-                            }
+                        if (entry.name.equals("xl/sharedStrings.xml", ignoreCase = true)) {
+                            result.addAll(extractSharedStrings(zis))
+                            break
                         }
                         entry = zis.nextEntry
                     }
+                    result
                 }
             } ?: run {
                 LoggerService.log(LogTag.ERROR, "Excel dosyası açılamadı (inputStream null)")
                 errors.add(ExcelParseError(0, "Dosya açılamadı"))
                 return@withContext ExcelParseResult(emptyList(), errors, 0, 0)
             }
+
+            // Second pass: parse sheet data from a fresh ZipInputStream
+            val sheetData = context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                ZipInputStream(inputStream).use { zis ->
+                    var entry = zis.nextEntry
+                    val result = mutableListOf<List<String>>()
+                    while (entry != null) {
+                        if (entry.name.equals("xl/worksheets/sheet1.xml", ignoreCase = true) ||
+                            entry.name.equals("xl/worksheets/sheet.xml", ignoreCase = true)) {
+                            result.addAll(parseSheetData(zis, sharedStrings))
+                            break
+                        }
+                        entry = zis.nextEntry
+                    }
+                    result
+                }
+            } ?: emptyList()
 
             LoggerService.log(LogTag.PARSER, "Shared strings extracted: ${sharedStrings.size}")
 
@@ -286,10 +296,11 @@ class ExcelParser @javax.inject.Inject constructor(
     // =========================================================================
 
     private fun normalizeHeader(s: String): String {
-        return s.uppercase()
-            .replace("Ç", "C").replace("Ğ", "G").replace("İ", "I").replace("Ö", "O")
-            .replace("Ş", "S").replace("Ü", "U")
-        // Note: lowercase replacements removed — uppercase() has already converted all chars
+        return s.uppercase(java.util.Locale.ROOT)
+            .replace("Ç", "C").replace("Ğ", "G").replace("İ", "I")
+            .replace("Ö", "O").replace("Ş", "S").replace("Ü", "U")
+            .replace(" ", "") // Remove spaces for strict format matching
+            .trim()
     }
 
     internal fun detectFormats(headerRow: List<String>): List<ExcelFormat> {
