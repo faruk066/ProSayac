@@ -32,6 +32,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.prosayac.app.data.datastore.UserPreferences
+import com.prosayac.app.domain.repository.AuthRepository
+import com.prosayac.app.presentation.auth.LoginScreen
 import com.prosayac.app.presentation.components.GlowingStatusIndicator
 import com.prosayac.app.presentation.connection.ConnectionScreen
 import com.prosayac.app.presentation.connection.ConnectionViewModel
@@ -64,6 +66,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var userPreferences: UserPreferences
 
+    @Inject
+    lateinit var authRepository: AuthRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -80,7 +85,7 @@ class MainActivity : ComponentActivity() {
             }
 
             ProMaxTheme(darkTheme = darkTheme) {
-                ProSayacMainApp()
+                ProSayacMainApp(authRepository = authRepository)
             }
         }
     }
@@ -101,10 +106,17 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProSayacMainApp(
+    authRepository: AuthRepository
 ) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+
+    // Determine start destination based on auth state
+    val startDestination = remember {
+        if (authRepository.isUserLoggedIn()) NavRoute.Dashboard.route
+        else NavRoute.Login.route
+    }
 
     // ViewModels
     val dashboardViewModel: DashboardViewModel = hiltViewModel()
@@ -119,6 +131,7 @@ fun ProSayacMainApp(
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+    val isLoginRoute = currentDestination?.route == NavRoute.Login.route
 
     val currentRoute = navItems.find { item ->
         currentDestination?.hierarchy?.any { it.route == item.route } == true
@@ -126,6 +139,7 @@ fun ProSayacMainApp(
 
     ModalNavigationDrawer(
         drawerState = drawerState,
+        gesturesEnabled = !isLoginRoute,
         drawerContent = {
             ModalDrawerSheet(
                 drawerContainerColor = MaterialTheme.colorScheme.surface,
@@ -238,8 +252,18 @@ fun ProSayacMainApp(
     ) {
         NavHost(
             navController = navController,
-            startDestination = NavRoute.Dashboard.route
+            startDestination = startDestination
         ) {
+            composable(NavRoute.Login.route) {
+                LoginScreen(
+                    onLoginSuccess = {
+                        navController.navigate(NavRoute.Dashboard.route) {
+                            popUpTo(NavRoute.Login.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+
             composable(NavRoute.Dashboard.route) {
                 DashboardScreen(
                     viewModel = dashboardViewModel,

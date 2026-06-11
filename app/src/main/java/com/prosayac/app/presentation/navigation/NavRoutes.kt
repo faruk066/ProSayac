@@ -15,6 +15,7 @@ sealed class NavRoute(
     data object Logs : NavRoute("logs", "Sistem Günlükleri", Icons.Default.Terminal)
     data object Settings : NavRoute("settings", "Ayarlar", Icons.Default.Settings)
     data object Connection : NavRoute("connection", "Bağlantı", Icons.Default.Usb)
+    data object Login : NavRoute("login")
 }
 
 val navItems = listOf(
