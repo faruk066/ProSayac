@@ -48,8 +48,6 @@ data class MetersUiState(
     val error: String? = null,
     val isReadingInProgress: Boolean = false,
     val readingProgressMessage: String = "",
-    val meterReadStatuses: Map<Long, String> = emptyMap(),
-    val meterReadingValues: Map<Long, String> = emptyMap(),
     val pendingFormatChoiceUri: Uri? = null,
     val pendingFormatOptions: List<ExcelFormat> = emptyList()
 )
@@ -69,6 +67,13 @@ class MetersViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(MetersUiState())
     val uiState: StateFlow<MetersUiState> = _uiState.asStateFlow()
+
+    // Decoupled from UiState to prevent full-screen recomposition on every meter status update
+    private val _meterStatuses = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val meterStatuses: StateFlow<Map<Long, String>> = _meterStatuses.asStateFlow()
+
+    private val _meterReadingValues = MutableStateFlow<Map<Long, String>>(emptyMap())
+    val meterReadingValues: StateFlow<Map<Long, String>> = _meterReadingValues.asStateFlow()
 
     private var readingJob: Job? = null
     private var metersJob: Job? = null
@@ -316,10 +321,10 @@ class MetersViewModel @Inject constructor(
 
         _uiState.value = _uiState.value.copy(
             isReadingInProgress = true,
-            readingProgressMessage = "0 / ${metersToList.size} okundu",
-            meterReadStatuses = emptyMap(),
-            meterReadingValues = emptyMap()
+            readingProgressMessage = "0 / ${metersToList.size} okundu"
         )
+        _meterStatuses.value = emptyMap()
+        _meterReadingValues.value = emptyMap()
 
         var readCount = 0
         var timeoutCount = 0
@@ -467,10 +472,10 @@ class MetersViewModel @Inject constructor(
         readingJob = null
         _uiState.value = _uiState.value.copy(
             isReadingInProgress = false,
-            readingProgressMessage = "İptal Edildi",
-            meterReadStatuses = emptyMap(),
-            meterReadingValues = emptyMap()
+            readingProgressMessage = "İptal Edildi"
         )
+        _meterStatuses.value = emptyMap()
+        _meterReadingValues.value = emptyMap()
     }
 
     private suspend fun onMeterReadingReceived(meterId: Long, readingValue: String) {
@@ -500,15 +505,11 @@ class MetersViewModel @Inject constructor(
     }
 
     private fun updateMeterStatus(meterId: Long, status: String) {
-        val current = _uiState.value.meterReadStatuses.toMutableMap()
-        current[meterId] = status
-        _uiState.value = _uiState.value.copy(meterReadStatuses = current)
+        _meterStatuses.value = _meterStatuses.value + (meterId to status)
     }
 
     private fun updateMeterReadingValue(meterId: Long, value: String) {
-        val current = _uiState.value.meterReadingValues.toMutableMap()
-        current[meterId] = value
-        _uiState.value = _uiState.value.copy(meterReadingValues = current)
+        _meterReadingValues.value = _meterReadingValues.value + (meterId to value)
     }
 
     fun setTypeFilter(type: String) {

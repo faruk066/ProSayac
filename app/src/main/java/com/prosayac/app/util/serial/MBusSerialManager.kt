@@ -507,10 +507,16 @@ class MBusSerialManager @Inject constructor(
                 // Fallback: drain manually if purgeHwBuffers is not available
                 try {
                     val drainBuf = ByteArray(256)
+                    var loopCount = 0
                     while (true) {
                         val read = serialPort?.read(drainBuf, 50) ?: -1
                         if (read <= 0) break
                         LoggerService.log(LogTag.HARDWARE, "Manuel tahliye: $read byte atıldı")
+                        loopCount++
+                        if (loopCount > 100) {
+                            LoggerService.log(LogTag.WARN, "Manuel tahliye 100 döngü limitini aştı, durduruluyor")
+                            break
+                        }
                     }
                 } catch (_: Exception) {}
             }
@@ -626,6 +632,7 @@ class MBusSerialManager @Inject constructor(
                 cont.invokeOnCancellation {
                     synchronized(dataBuffer) {
                         accumulatorCallback = null
+                        accumulator.clear()
                     }
                 }
             }

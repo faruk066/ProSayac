@@ -45,6 +45,8 @@ fun MetersScreen(
     onMenuClick: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val meterStatuses by viewModel.meterStatuses.collectAsStateWithLifecycle()
+    val meterReadingValues by viewModel.meterReadingValues.collectAsStateWithLifecycle()
     val connectionState by viewModel.connectionState.collectAsStateWithLifecycle()
     val isPaused by viewModel.isPaused.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -317,8 +319,8 @@ fun MetersScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     items(state.filteredMeters, key = { it.id }) { meter ->
-                        val readStatus = state.meterReadStatuses[meter.id]
-                        val readingValue = state.meterReadingValues[meter.id]
+                        val readStatus = meterStatuses[meter.id]
+                        val readingValue = meterReadingValues[meter.id]
                         MeterGridCard(
                             meter = meter,
                             readStatus = readStatus,
