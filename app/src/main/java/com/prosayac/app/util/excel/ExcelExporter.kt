@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.prosayac.app.domain.model.Meter
 import jxl.Workbook
+import jxl.write.WritableWorkbook
 import jxl.write.Label
 import jxl.write.Number
 import jxl.write.WritableCellFormat
@@ -31,7 +32,7 @@ class ExcelExporter @javax.inject.Inject constructor(
         val safeName = binaAdi.replace(Regex("[^a-zA-Z0-9]"), "_")
         val timeStamp = SimpleDateFormat("ddMMyy_HHmm", java.util.Locale.US).format(Date())
         val file = File(context.cacheDir, "${safeName}_${timeStamp}.xls")
-        var workbook: Workbook? = null
+        var workbook: WritableWorkbook? = null
         return try {
 
             // ── Style definitions ─────────────────────────────────────────────────

@@ -314,6 +314,8 @@ fun BarChart(
         animatedProgress.animateTo(1f, animationSpec = tween(800, easing = FastOutSlowInEasing))
     }
 
+    // Evaluate theme color in @Composable scope before entering Canvas DrawScope
+    val axisLabelColorArgb = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     // Hoist Paint objects outside draw loop to prevent GC pressure (100+ allocs/sec)
     val valueLabelPaint = remember {
         android.graphics.Paint().apply {
@@ -325,7 +327,7 @@ fun BarChart(
     }
     val axisLabelPaint = remember {
         android.graphics.Paint().apply {
-            color = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+            color = axisLabelColorArgb
             textSize = 22f
             textAlign = android.graphics.Paint.Align.CENTER
             isAntiAlias = true
@@ -492,10 +494,12 @@ fun LineChart(
         animatedProgress.animateTo(1f, animationSpec = tween(1000, easing = FastOutSlowInEasing))
     }
 
+    // Evaluate theme color in @Composable scope before entering Canvas DrawScope
+    val lineChartAxisColorArgb = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
     // Hoist Paint to prevent allocation per frame during animation
     val lineChartAxisPaint = remember {
         android.graphics.Paint().apply {
-            color = MaterialTheme.colorScheme.onSurfaceVariant.toArgb()
+            color = lineChartAxisColorArgb
             textSize = 20f
             textAlign = android.graphics.Paint.Align.CENTER
             isAntiAlias = true
