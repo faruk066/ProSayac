@@ -8,7 +8,7 @@ import com.prosayac.app.data.local.database.AppDatabase
 import com.prosayac.app.data.local.dao.MeterDao
 import com.prosayac.app.data.local.dao.ReadingDao
 import com.prosayac.app.data.local.dao.SiteDao
-import com.prosayac.app.util.serial.MBusSerialManager
+
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -113,10 +113,19 @@ object DatabaseModule {
         }
     }
 
-    // Migration from version 6 to 7 (add site_supabase_id column to meters)
+    // Migration from version 6 to 7 (add site_supabase_id column + create missing indices)
+    //
+    // The indices below are declared via @Entity annotations (MeterEntity, ReadingEntity)
+    // but were never explicitly created in prior migrations. Room 7.x schema verification
+    // checks for their existence and crashes with IllegalStateException if missing.
     private val MIGRATION_6_7 = object : Migration(6, 7) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL("ALTER TABLE meters ADD COLUMN site_supabase_id TEXT")
+
+            // Create indices matching Room entity annotations (v7 schema)
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_meters_status ON meters(status)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_meters_meter_type ON meters(meter_type)")
+            database.execSQL("CREATE INDEX IF NOT EXISTS index_readings_reading_date ON readings(reading_date)")
         }
     }
 
@@ -151,9 +160,4 @@ object DatabaseModule {
         return database.siteDao()
     }
 
-    @Provides
-    @Singleton
-    fun provideSerialManager(@ApplicationContext context: Context): MBusSerialManager {
-        return MBusSerialManager(context)
-    }
 }

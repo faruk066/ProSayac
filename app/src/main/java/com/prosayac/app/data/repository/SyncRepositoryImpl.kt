@@ -1,5 +1,6 @@
 package com.prosayac.app.data.repository
 
+import com.prosayac.app.data.local.dao.MeterDao
 import com.prosayac.app.data.local.dao.SiteDao
 import com.prosayac.app.data.local.entity.MeterEntity
 import com.prosayac.app.data.local.entity.SiteEntity
@@ -19,7 +20,8 @@ import javax.inject.Singleton
 @Singleton
 class SyncRepositoryImpl @Inject constructor(
     private val supabaseClient: SupabaseClient,
-    private val siteDao: SiteDao
+    private val siteDao: SiteDao,
+    private val meterDao: MeterDao
 ) : SyncRepository {
 
     private val json = Json { ignoreUnknownKeys = true }
@@ -65,11 +67,19 @@ class SyncRepositoryImpl @Inject constructor(
                 )
             }
 
-            // Atomically replace old data with new (delete + insert in a single Room transaction).
-            // If a crash occurs mid-way, the transaction rolls back and the old data is preserved.
-            siteDao.replaceAllData(siteEntities, meterEntities)
+            // ID-preserving upsert: NEVER delete local meters/readings.
+            //
+            // Sites: inserted with OnConflictStrategy.REPLACE (PK = Supabase UUID, no CASCADE risk).
+            // Meters: matched by serial_number via importAllAtomic — existing meters get their
+            // metadata fields updated while preserving local ID, status, last_reading, and
+            // most importantly, all linked readings (avoiding CASCADE data loss).
+            //
+            // Meters absent from the server response are NEVER deleted — they may have
+            // pending (sync_status = PENDING) readings that haven't reached the cloud yet.
+            siteDao.insertSites(siteEntities)
+            meterDao.importAllAtomic(meterEntities)
 
-            LoggerService.log(LogTag.SYNC, "Senkronizasyon tamamlandı: ${siteEntities.size} site, ${meterEntities.size} sayaç")
+            LoggerService.log(LogTag.SYNC, "Senkronizasyon tamamlandı: ${siteEntities.size} site, ${meterEntities.size} sayaç (mevcut okumalar korundu)")
             Result.success(Unit)
         } catch (e: Exception) {
             LoggerService.log(LogTag.ERROR, "Supabase senkronizasyon hatası: ${e.message}")
