@@ -36,4 +36,8 @@ class AuthRepositoryImpl @Inject constructor(
     override fun isUserLoggedIn(): Boolean {
         return supabaseClient.auth.currentSessionOrNull() != null
     }
+
+    override fun getCurrentUserEmail(): String? {
+        return supabaseClient.auth.currentSessionOrNull()?.user?.email
+    }
 }

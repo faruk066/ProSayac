@@ -173,6 +173,7 @@ object MBusProtocolHandler {
                     0x02 -> rawVal = decodeInt16(valueBytes)        // 2-byte integer
                     0x03 -> rawVal = decodeInt24(valueBytes)        // 3-byte integer
                     0x04 -> rawVal = decodeInt32(valueBytes)        // 4-byte signed integer
+                    0x05 -> rawVal = decodeFloat32(valueBytes)      // 4-byte IEEE 754 float
                     0x06 -> rawVal = decodeInt48(valueBytes)        // 6-byte integer
                     0x07 -> rawVal = decodeInt64(valueBytes)        // 8-byte integer
                     0x09 -> rawVal = decodeBcd2(valueBytes)         // 2-digit BCD (1 byte)
@@ -410,6 +411,16 @@ object MBusProtocolHandler {
         return v.toDouble()
     }
 
+    // IEEE 754 single-precision float (DIF 0x05)
+    private fun decodeFloat32(bytes: ByteArray): Double {
+        if (bytes.size < 4) return 0.0
+        val bits = (bytes[0].toInt() and 0xFF) or
+                   ((bytes[1].toInt() and 0xFF) shl 8) or
+                   ((bytes[2].toInt() and 0xFF) shl 16) or
+                   ((bytes[3].toInt() and 0xFF) shl 24)
+        return java.lang.Float.intBitsToFloat(bits).toDouble()
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // ADDITIONAL BCD DECODERS (2, 4, 6 digit BCD)
     // ─────────────────────────────────────────────────────────────────────────
@@ -600,9 +611,6 @@ object MBusProtocolHandler {
             if (serialManager.connectionState.value != ConnectionState.CONNECTED) {
                 return PollOutcome.DeviceNotFound(null)
             }
-
-            // ── AGGRESSIVE BUFFER PURGE before starting ──
-            serialManager.purgeAllBuffers()
 
             // Use the full Calmet sequence from sendReadRequest
             try {

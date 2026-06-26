@@ -1,10 +1,24 @@
+import java.util.Properties
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
-    id("androidx.room") version "2.6.1" apply false
+    id("androidx.room") version "2.7.2" apply false
+    // org.jetbrains.kotlin.plugin.compose requires Kotlin 2.0+ — removed for Kotlin 1.9.22 (uses composeOptions instead)
+}
+
+// Room schema export for KSP
+ksp {
+    arg("room.schemaLocation", "${project.projectDir}/schemas")
 }
 
 android {
@@ -23,8 +37,14 @@ android {
             useSupportLibrary = true
         }
 
-        buildConfigField("String", "SUPABASE_URL", "\"https://your-project-id.supabase.co\"")
-        buildConfigField("String", "SUPABASE_ANON_KEY", "\"your-anon-key-here\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${localProperties["SUPABASE_URL"] ?: ""}\"")
+        buildConfigField("String", "SUPABASE_KEY", "\"${localProperties["SUPABASE_KEY"] ?: ""}\"")
+
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments["room.schemaLocation"] = "$projectDir/schemas"
+            }
+        }
     }
 
     buildTypes {
@@ -50,13 +70,13 @@ android {
         )
     }
 
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.8"
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.8"
     }
 
     packaging {
@@ -141,6 +161,17 @@ dependencies {
     implementation("io.coil-kt:coil-compose:2.5.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    // WorkManager for background sync uploads
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.hilt:hilt-work:1.1.0")
+    ksp("androidx.hilt:hilt-compiler:1.1.0")
+
+    // AndroidX Startup (required by WorkManager initializer conflict resolution)
+    implementation("androidx.startup:startup-runtime:1.1.1")
+
+    // Encrypted SharedPreferences for Supabase session persistence
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Supabase Kotlin SDK (offline-first sync layer)
     val supabaseVersion = "3.0.0"

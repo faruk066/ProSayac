@@ -10,6 +10,7 @@ data class ReadingWithMeter(
     val readingValue: String,
     val readingDate: Long,
     val isSynced: Boolean,
+    val syncStatus: String = "PENDING",
     val readingType: String,
     val notes: String?,
     val meterStatus: String

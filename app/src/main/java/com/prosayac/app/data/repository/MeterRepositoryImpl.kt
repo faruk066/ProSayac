@@ -58,11 +58,11 @@ class MeterRepositoryImpl @Inject constructor(
     }
 
     override suspend fun insertMeter(meter: Meter): Long {
-        return meterDao.insertMeter(meter.toEntity())
+        return meterDao.insertMeter(meter.toEntity().copy(createdAt = System.currentTimeMillis()))
     }
 
     override suspend fun insertMeters(meters: List<Meter>): List<Long> {
-        return meterDao.insertMeters(meters.map { it.toEntity() })
+        return meterDao.insertMeters(meters.map { it.toEntity().copy(createdAt = System.currentTimeMillis()) })
     }
 
     override suspend fun importMetersAtomic(newMeters: List<Meter>) {
@@ -116,6 +116,8 @@ class MeterRepositoryImpl @Inject constructor(
 
     override fun getTotalReadingCount(): Flow<Int> = readingDao.getTotalReadingCount()
     override fun getUnsyncedReadingCount(): Flow<Int> = readingDao.getUnsyncedReadingCount()
+    override fun getPendingReadingCount(): Flow<Int> = readingDao.getPendingReadingCount()
+    override fun getSyncedReadingCount(): Flow<Int> = readingDao.getSyncedReadingCount()
 
     override suspend fun insertReading(reading: Reading): Long {
         return readingDao.insertReading(reading.toEntity())
@@ -195,6 +197,8 @@ fun ReadingEntity.toDomain(): Reading {
         readingValue = readingValue,
         readingDate = readingDate,
         isSynced = isSynced,
+        syncStatus = syncStatus,
+        siteId = siteId,
         readingType = readingType,
         notes = notes
     )
@@ -207,6 +211,8 @@ fun Reading.toEntity(): ReadingEntity {
         readingValue = readingValue,
         readingDate = readingDate,
         isSynced = isSynced,
+        syncStatus = syncStatus,
+        siteId = siteId,
         readingType = readingType,
         notes = notes
     )

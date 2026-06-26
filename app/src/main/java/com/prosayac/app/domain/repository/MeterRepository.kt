@@ -35,6 +35,8 @@ interface MeterRepository {
     fun getReadingsByDateRange(startDate: Long, endDate: Long): Flow<List<Reading>>
     fun getTotalReadingCount(): Flow<Int>
     fun getUnsyncedReadingCount(): Flow<Int>
+    fun getPendingReadingCount(): Flow<Int>
+    fun getSyncedReadingCount(): Flow<Int>
     suspend fun insertReading(reading: Reading): Long
     suspend fun insertReadings(readings: List<Reading>): List<Long>
     suspend fun markReadingsAsSynced(ids: List<Long>)

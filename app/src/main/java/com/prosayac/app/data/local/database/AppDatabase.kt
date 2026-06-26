@@ -13,7 +13,7 @@ import com.prosayac.app.data.local.entity.SiteEntity
 
 @Database(
     entities = [MeterEntity::class, ReadingEntity::class, SiteEntity::class],
-    version = 5,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

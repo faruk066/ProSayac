@@ -52,7 +52,7 @@ fun DashboardScreen(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.loadAllData()
+                viewModel.refresh()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -99,6 +99,36 @@ fun DashboardScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // Active user info
+                if (state.userEmail != null) {
+                    item {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.Person,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = state.userEmail!!,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // KPI SUMMARY CARDS (2x2 Grid)
                 item {
                     Row(
@@ -257,6 +287,33 @@ fun DashboardScreen(
                     }
                 }
 
+                // Manual sync button
+                item {
+                    Button(
+                        onClick = { viewModel.syncNow() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ProMaxTertiary,
+                            contentColor = ProMaxOnTertiary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.Sync,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "Senkronize Et",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            fontFamily = FontFamily.Monospace
+                        )
+                    }
+                }
+
                 // Bottom spacer
                 item { Spacer(modifier = Modifier.height(8.dp)) }
             }
@@ -325,7 +382,7 @@ fun BarChart(
             isAntiAlias = true
         }
     }
-    val axisLabelPaint = remember {
+    val axisLabelPaint = remember(axisLabelColorArgb) {
         android.graphics.Paint().apply {
             color = axisLabelColorArgb
             textSize = 22f

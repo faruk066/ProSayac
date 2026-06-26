@@ -1,8 +1,13 @@
 package com.prosayac.app.presentation.meters
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.prosayac.app.domain.model.Meter
 import com.prosayac.app.domain.model.MeterStatus
 import com.prosayac.app.domain.model.PollOutcome
@@ -18,7 +23,9 @@ import com.prosayac.app.util.excel.METER_TYPE_WATER
 import com.prosayac.app.util.serial.ConnectionState
 import com.prosayac.app.util.serial.MBusProtocolHandler
 import com.prosayac.app.util.serial.MBusSerialManager
+import com.prosayac.app.worker.UploadSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -60,6 +67,7 @@ data class ImportResultState(
 
 @HiltViewModel
 class MetersViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val meterRepository: MeterRepository,
     private val serialManager: MBusSerialManager,
     private val excelParser: ExcelParser
@@ -355,6 +363,9 @@ class MetersViewModel @Inject constructor(
         }
 
         _isPaused.value = false
+        // Clear transient status map so card display falls through to DB state
+        _meterStatuses.value = emptyMap()
+        _meterReadingValues.value = emptyMap()
 
         LoggerService.log(
             LogTag.INFO,
@@ -414,7 +425,10 @@ class MetersViewModel @Inject constructor(
                 val displaySerial = matchedMeter?.serialNumber ?: meter.serialNumber
 
             val meterForType = matchedMeter ?: meter
-            val isWaterMeter = meterForType.meterType.equals(METER_TYPE_WATER, ignoreCase = true)
+            // Broad check: any meter whose type contains "Su" is a volume-based water meter.
+            // Using contains() instead of exact equals() because Supabase may return
+            // variants like "SICAK SU", "Su Sayacı", "Sıcak Su" etc.
+            val isWaterMeter = meterForType.meterType.contains("Su", ignoreCase = true)
             val selectedValue = if (isWaterMeter) {
                 String.format(java.util.Locale.US, "%.3f", outcome.volume)
             } else {
@@ -497,6 +511,15 @@ class MetersViewModel @Inject constructor(
                     readingType = "m-bus"
                 )
             )
+
+            // Enqueue background upload for pending readings
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+            val request = OneTimeWorkRequestBuilder<UploadSyncWorker>()
+                .setConstraints(constraints)
+                .build()
+            WorkManager.getInstance(context).enqueue(request)
         } catch (e: Exception) {
             LoggerService.log(LogTag.ERROR, "Okuma kaydedilirken hata (id=$meterId): ${e.message}")
             _uiState.value = _uiState.value.copy(

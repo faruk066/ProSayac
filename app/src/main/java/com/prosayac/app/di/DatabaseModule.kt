@@ -92,20 +92,6 @@ object DatabaseModule {
         }
     }
 
-    // Migration from version 2 to 4 (no schema changes, empty migration)
-    private val MIGRATION_2_4 = object : Migration(2, 4) {
-        override fun migrate(database: SupportSQLiteDatabase) {
-            // No schema changes between v2 and v4
-        }
-    }
-
-    // Migration from version 3 to 4 (no schema changes, empty migration)
-    private val MIGRATION_3_4 = object : Migration(3, 4) {
-        override fun migrate(database: SupportSQLiteDatabase) {
-            // No schema changes between v3 and v4
-        }
-    }
-
     // Migration from version 4 to 5 (add sites table)
     private val MIGRATION_4_5 = object : Migration(4, 5) {
         override fun migrate(database: SupportSQLiteDatabase) {
@@ -119,6 +105,21 @@ object DatabaseModule {
         }
     }
 
+    // Migration from version 5 to 6 (add sync_status and site_id columns to readings)
+    private val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE readings ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'PENDING'")
+            database.execSQL("ALTER TABLE readings ADD COLUMN site_id TEXT")
+        }
+    }
+
+    // Migration from version 6 to 7 (add site_supabase_id column to meters)
+    private val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE meters ADD COLUMN site_supabase_id TEXT")
+        }
+    }
+
     @Provides
     @Singleton
     fun provideAppDatabase(@ApplicationContext context: Context): AppDatabase {
@@ -127,7 +128,8 @@ object DatabaseModule {
             AppDatabase::class.java,
             "prosayac_database"
         )
-            .addMigrations(MIGRATION_1_4, MIGRATION_2_4, MIGRATION_3_4, MIGRATION_4_5)
+            .addMigrations(MIGRATION_1_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+            .fallbackToDestructiveMigrationFrom(2, 3)
             .build()
     }
 

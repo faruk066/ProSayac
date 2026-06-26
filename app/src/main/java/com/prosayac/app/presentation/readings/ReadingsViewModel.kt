@@ -1,11 +1,16 @@
 package com.prosayac.app.presentation.readings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.prosayac.app.domain.model.ReadingWithMeter
 import com.prosayac.app.domain.repository.MeterRepository
 import com.prosayac.app.util.excel.ExcelExporter
+import com.prosayac.app.worker.UploadSyncWorker
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -30,7 +35,8 @@ data class ReadingsUiState(
 @HiltViewModel
 class ReadingsViewModel @Inject constructor(
     private val meterRepository: MeterRepository,
-    private val excelExporter: ExcelExporter
+    private val excelExporter: ExcelExporter,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ReadingsUiState())
@@ -66,8 +72,23 @@ class ReadingsViewModel @Inject constructor(
             try {
                 val buildingName = _uiState.value.readings.firstOrNull()?.buildingName?.ifBlank { "Bina" } ?: "Bina"
 
+                // Fetch meters AND readings directly from Room, then fill lastReading
+                // from the actual reading values so the Excel has real data.
                 val meters = withContext(Dispatchers.IO) {
-                    meterRepository.getAllMeters().first()
+                    val allMeters = meterRepository.getAllMeters().first()
+                    val allReadings = meterRepository.getAllReadings().first()
+                    val latestByMeterId = allReadings
+                        .groupBy { it.meterId }
+                        .mapValues { (_, list) -> list.maxByOrNull { it.readingDate }!! }
+                    allMeters.map { meter ->
+                        val reading = latestByMeterId[meter.id]
+                        if (reading != null) {
+                            meter.copy(
+                                lastReading = reading.readingValue,
+                                lastReadingDate = reading.readingDate
+                            )
+                        } else meter
+                    }
                 }
 
                 val success = withContext(Dispatchers.IO) {
@@ -85,6 +106,18 @@ class ReadingsViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    /**
+     * Enqueue [UploadSyncWorker] to upload pending readings to Supabase immediately.
+     * Works even if a periodic sync is already scheduled — WorkManager deduplicates
+     * by [UploadSyncWorker] class name.
+     */
+    fun triggerSync() {
+        val request = OneTimeWorkRequestBuilder<UploadSyncWorker>()
+            .addTag("manual-upload")
+            .build()
+        WorkManager.getInstance(context).enqueue(request)
     }
 
     fun dismissExportDone() {

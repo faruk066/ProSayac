@@ -6,6 +6,8 @@ data class Reading(
     val readingValue: String,
     val readingDate: Long,
     val isSynced: Boolean = false,
+    val syncStatus: String = "PENDING",
+    val siteId: String? = null,
     val readingType: String = "manual",
     val notes: String? = null
 )

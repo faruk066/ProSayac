@@ -357,7 +357,7 @@ class MBusSerialManager @Inject constructor(
             for (i in 4 until baseFrame.size) {
                 cs = (cs + (baseFrame[i].toInt() and 0xFF)) and 0xFF
             }
-            val selectionFrame = baseFrame + byteArrayOf(cs.toByte(), 0x16.toByte())
+            val selectionFrame = baseFrame + byteArrayOf((cs and 0xFF).toByte(), 0x16.toByte())
 
             // Step D: Send selection frame, then wait for E5
             write(selectionFrame)
@@ -503,22 +503,9 @@ class MBusSerialManager @Inject constructor(
                 serialPort?.purgeHwBuffers(true, true)
                 LoggerService.log(LogTag.HARDWARE, "Donanım tamponları purged (RX+TX)")
             } catch (e: Exception) {
-                LoggerService.log(LogTag.WARN, "Donanım tampon temizleme hatası: ${e.message}")
-                // Fallback: drain manually if purgeHwBuffers is not available
-                try {
-                    val drainBuf = ByteArray(256)
-                    var loopCount = 0
-                    while (true) {
-                        val read = serialPort?.read(drainBuf, 50) ?: -1
-                        if (read <= 0) break
-                        LoggerService.log(LogTag.HARDWARE, "Manuel tahliye: $read byte atıldı")
-                        loopCount++
-                        if (loopCount > 100) {
-                            LoggerService.log(LogTag.WARN, "Manuel tahliye 100 döngü limitini aştı, durduruluyor")
-                            break
-                        }
-                    }
-                } catch (_: Exception) {}
+                // Ch34x and some other drivers don't support purgeHwBuffers — log and continue.
+                // Do NOT fall back to serialPort?.read() — that races with SerialInputOutputManager.
+                LoggerService.log(LogTag.WARN, "Donanım tampon temizleme hatası (sürücü desteklemiyor, atlanıyor): ${e.message}")
             }
         }
 
@@ -715,8 +702,8 @@ class MBusSerialManager @Inject constructor(
                         val cleanData = dataBuffer.toByteArray()
                         dataBuffer.clear()
 
-                        // Check for E5 in clean data
-                        if (cleanData.contains(0xE5.toByte())) {
+                        // Check for E5 in clean data — only single-byte 0xE5 is a valid ACK
+                        if (cleanData.size == 1 && cleanData[0] == 0xE5.toByte()) {
                             e5Callback?.invoke()
                             e5Callback = null
                         }

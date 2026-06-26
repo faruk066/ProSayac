@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.prosayac.app.domain.model.DailyStats
 import com.prosayac.app.domain.model.MonthlyStats
 import com.prosayac.app.domain.model.TypeStats
+import com.prosayac.app.domain.repository.AuthRepository
 import com.prosayac.app.domain.repository.MeterRepository
 import com.prosayac.app.domain.repository.SyncRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -20,11 +21,14 @@ data class DashboardUiState(
     val unreadMeters: Int = 0,
     val unsyncedMeters: Int = 0,
     val totalReadings: Int = 0,
+    val pendingReadings: Int = 0,
+    val syncedReadings: Int = 0,
     val readingProgress: Float = 0f,
     val syncProgress: Float = 0f,
     val isLoading: Boolean = true,
     val isChartError: Boolean = false,
     val chartErrorMessage: String? = null,
+    val userEmail: String? = null,
 
     // Chart data
     val barChartLabels: List<String> = emptyList(),
@@ -43,27 +47,57 @@ data class DonutSegmentUi(
 @HiltViewModel
 class DashboardViewModel @Inject constructor(
     private val meterRepository: MeterRepository,
-    private val syncRepository: SyncRepository
+    private val syncRepository: SyncRepository,
+    private val authRepository: AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    // Reactive reading sync counts — Room Flow → StateFlow via stateIn.
+    // The UI recomposes instantly when sync_status changes, no polling needed.
+    private val pendingReadingCount: StateFlow<Int> = meterRepository.getPendingReadingCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    private val syncedReadingCount: StateFlow<Int> = meterRepository.getSyncedReadingCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     init {
-        // Trigger Supabase sync once on startup
+        // Populate active user email (non-suspend — reads session directly)
+        _uiState.value = _uiState.value.copy(userEmail = authRepository.getCurrentUserEmail())
+
+        // Launch sync and chart loading sequentially: chart data waits for sync to finish
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+
+            // Step 1: Fetch fresh data from Supabase
             syncRepository.fetchAndSaveAssignments()
+
+            // Step 2: Now that Room DB is populated, load chart data
+            loadChartData()
+
+            _uiState.update { it.copy(isLoading = false) }
         }
 
-        // Single permanent collector for reactive meter counts — runs once for ViewModel lifetime
+        // Permanent collector for reactive meter counts — updates instantly when Room DB changes
         viewModelScope.launch {
             combine(
                 meterRepository.getTotalCount(),
                 meterRepository.getReadCount(),
                 meterRepository.getUnreadCount(),
                 meterRepository.getUnsyncedCount(),
-                meterRepository.getTotalReadingCount()
-            ) { total, read, unread, unsynced, readingsCount ->
+                meterRepository.getTotalReadingCount(),
+                pendingReadingCount,
+                syncedReadingCount
+            ) { args ->
+                val total        = args[0] as Int
+                val read         = args[1] as Int
+                val unread       = args[2] as Int
+                val unsynced     = args[3] as Int
+                val readingsCount = args[4] as Int
+                val pending      = args[5] as Int
+                val synced       = args[6] as Int
+
                 val progress = if (total > 0) read.toFloat() / total else 0f
                 val syncP = if (total > 0) (total - unsynced).toFloat() / total else 0f
 
@@ -74,26 +108,36 @@ class DashboardViewModel @Inject constructor(
                         unreadMeters = unread,
                         unsyncedMeters = unsynced,
                         totalReadings = readingsCount,
+                        pendingReadings = pending,
+                        syncedReadings = synced,
                         readingProgress = progress,
                         syncProgress = syncP
                     )
                 }
             }.collect()
         }
-
-        loadAllData()
     }
 
-    fun loadAllData() {
+    /**
+     * Called when the screen resumes — re-fetches the latest Meter count once
+     * on the UI thread (the reactive Flow handles subsequent updates).
+     */
+    fun refresh() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
-
-            // Wait briefly for combined counts to emit initial values, then load chart data
-            delay(200)
-
-            // Load chart data (suspend functions)
             loadChartData()
+            _uiState.update { it.copy(isLoading = false) }
+        }
+    }
 
+    /**
+     * Manual sync button: fetch fresh data from Supabase and force UI update.
+     */
+    fun syncNow() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true)
+            syncRepository.fetchAndSaveAssignments()
+            loadChartData()
             _uiState.update { it.copy(isLoading = false) }
         }
     }

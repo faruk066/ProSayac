@@ -623,6 +623,14 @@ fun MeterGridCard(
                 Spacer(modifier = Modifier.height(4.dp))
             }
 
+            // Flat/apartment number
+            Text(
+                text = "Daire No: ${meter.flatNumber.ifBlank { "-" }}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,

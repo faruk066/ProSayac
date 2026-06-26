@@ -12,7 +12,7 @@ data class Meter(
     val lastReading: String? = null,
     val lastReadingDate: Long? = null,
     val isSynced: Boolean = false,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = 0L
 ) {
     val displaySerialNumber: String
         get() = serialNumber.ifBlank { "-" }

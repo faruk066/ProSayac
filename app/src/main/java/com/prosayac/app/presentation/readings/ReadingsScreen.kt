@@ -1,5 +1,6 @@
 package com.prosayac.app.presentation.readings
 
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -11,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -89,20 +91,12 @@ fun ReadingsScreen(
         },
         floatingActionButton = {
             if (!state.isLoading && state.readings.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    FloatingActionButton(
-                        onClick = { viewModel.exportToXlsx() },
-                        containerColor = ProMaxTertiary,
-                        contentColor = ProMaxOnTertiary
-                    ) {
-                        Icon(Icons.Default.FileDownload, "Excel (.xls) Dışa Aktar")
-                    }
-                    FloatingActionButton(
-                        onClick = { /* Sync */ },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Icon(Icons.Default.Sync, "Senkronize Et")
-                    }
+                FloatingActionButton(
+                    onClick = { viewModel.exportToXlsx() },
+                    containerColor = ProMaxTertiary,
+                    contentColor = ProMaxOnTertiary
+                ) {
+                    Icon(Icons.Default.FileDownload, "Excel (.xls) Dışa Aktar")
                 }
             }
         }
@@ -220,7 +214,7 @@ fun ReadingsScreen(
                                         }
                                     )
                                 }
-                                SyncStatusBadge(isSynced = reading.isSynced, modifier = Modifier.width(80.dp))
+                                SyncStatusBadge(syncStatus = reading.syncStatus, modifier = Modifier.width(80.dp))
                             }
                             Divider(thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
                         }
@@ -248,6 +242,36 @@ fun ReadingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center
+                        )
+                    }
+
+                    // Prominent sync button at the bottom of the list
+                    val context = LocalContext.current
+                    Button(
+                        onClick = {
+                            viewModel.triggerSync()
+                            Toast.makeText(context, "Okumalar buluta gönderiliyor...", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .height(52.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ProMaxTertiary,
+                            contentColor = ProMaxOnTertiary
+                        )
+                    ) {
+                        Icon(
+                            Icons.Default.CloudUpload,
+                            contentDescription = null,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            "Buluta Gönder / Aktar",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            fontFamily = FontFamily.Monospace
                         )
                     }
                 }

@@ -17,7 +17,7 @@ import com.prosayac.app.data.local.entity.MeterEntity
             onDelete = ForeignKey.CASCADE
         )
     ],
-    indices = [Index("meter_id")]
+    indices = [Index("meter_id"), Index("reading_date")]
 )
 data class ReadingEntity(
     @PrimaryKey(autoGenerate = true)
@@ -34,6 +34,12 @@ data class ReadingEntity(
 
     @ColumnInfo(name = "is_synced")
     val isSynced: Boolean = false,
+
+    @ColumnInfo(name = "sync_status")
+    val syncStatus: String = "PENDING", // "PENDING", "SYNCED", "FAILED"
+
+    @ColumnInfo(name = "site_id")
+    val siteId: String? = null,
 
     @ColumnInfo(name = "reading_type")
     val readingType: String = "manual", // "manual", "m-bus", "import"

@@ -51,19 +51,23 @@ class SyncRepositoryImpl @Inject constructor(
                 )
             }
 
+            // Build site name lookup: site_id → site name (fixes UUID bug)
+            val siteNameMap = siteEntities.associate { it.id to it.name }
+
             val meterEntities = meterDtos.map { dto ->
                 MeterEntity(
                     serialNumber = dto.meter_serial,
+                    flatNumber = dto.apartment_number ?: "",
                     meterType = dto.meter_type ?: "Sıcak Su Sayacı",
-                    buildingName = dto.site_id,
+                    buildingName = siteNameMap[dto.site_id] ?: dto.site_id,
+                    siteSupabaseId = dto.site_id,
                     status = MeterStatus.UNREAD
                 )
             }
 
-            // Replace old data with new
-            siteDao.deleteAllSites()
-            siteDao.insertSites(siteEntities)
-            siteDao.insertMeters(meterEntities)
+            // Atomically replace old data with new (delete + insert in a single Room transaction).
+            // If a crash occurs mid-way, the transaction rolls back and the old data is preserved.
+            siteDao.replaceAllData(siteEntities, meterEntities)
 
             LoggerService.log(LogTag.SYNC, "Senkronizasyon tamamlandı: ${siteEntities.size} site, ${meterEntities.size} sayaç")
             Result.success(Unit)

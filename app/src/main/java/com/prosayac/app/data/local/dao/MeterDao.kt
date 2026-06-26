@@ -71,7 +71,7 @@ interface MeterDao {
                 )
                 updateMeter(updated)
             } else {
-                insertMeter(meter)
+                insertMeter(meter.copy(createdAt = System.currentTimeMillis()))
             }
         }
     }

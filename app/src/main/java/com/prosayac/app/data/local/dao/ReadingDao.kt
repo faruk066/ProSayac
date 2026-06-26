@@ -24,8 +24,9 @@ interface ReadingDao {
         SELECT r.id, r.meter_id AS meterId, m.serial_number AS serialNumber,
                m.flat_number AS flatNumber, m.meter_type AS meterType,
                m.building_name AS buildingName,
-               r.reading_value AS readingValue, r.reading_date AS readingDate,
-               r.is_synced AS isSynced, r.reading_type AS readingType,
+                r.reading_value AS readingValue, r.reading_date AS readingDate,
+                r.is_synced AS isSynced, r.sync_status AS syncStatus,
+                r.reading_type AS readingType,
                r.notes, m.status AS meterStatus
         FROM readings r
         INNER JOIN meters m ON r.meter_id = m.id
@@ -36,14 +37,20 @@ interface ReadingDao {
     @Query("SELECT COUNT(*) FROM readings")
     fun getTotalReadingCount(): Flow<Int>
 
-    @Query("SELECT COUNT(*) FROM readings WHERE is_synced = 0")
+    @Query("SELECT COUNT(*) FROM readings WHERE sync_status = 'PENDING' COLLATE NOCASE")
+    fun getPendingReadingCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM readings WHERE sync_status = 'SYNCED' COLLATE NOCASE")
+    fun getSyncedReadingCount(): Flow<Int>
+
+    @Query("SELECT COUNT(*) FROM readings WHERE sync_status != 'SYNCED' COLLATE NOCASE")
     fun getUnsyncedReadingCount(): Flow<Int>
 
     @Query("SELECT COUNT(*) FROM readings WHERE reading_date >= :since")
     suspend fun getReadingCountSince(since: Long): Int
 
     @Query("""
-        SELECT strftime('%Y-%m-%d', reading_date / 1000, 'unixepoch') as day, 
+        SELECT strftime('%Y-%m-%d', reading_date / 1000, 'unixepoch', 'localtime') as day, 
                COUNT(*) as count 
         FROM readings 
         WHERE reading_date >= :since 
@@ -60,7 +67,7 @@ interface ReadingDao {
     suspend fun getReadingTypeDistribution(): List<TypeStats>
 
     @Query("""
-        SELECT strftime('%Y-%m', reading_date / 1000, 'unixepoch') as month, 
+        SELECT strftime('%Y-%m', reading_date / 1000, 'unixepoch', 'localtime') as month, 
                COUNT(*) as count 
         FROM readings 
         GROUP BY month 
@@ -80,6 +87,12 @@ interface ReadingDao {
 
     @Query("UPDATE readings SET is_synced = 1 WHERE id IN (:ids)")
     suspend fun markAsSynced(ids: List<Long>)
+
+    @Query("SELECT * FROM readings WHERE sync_status = 'PENDING' ORDER BY reading_date ASC")
+    suspend fun getPendingReadings(): List<ReadingEntity>
+
+    @Query("UPDATE readings SET sync_status = :status WHERE id = :id")
+    suspend fun updateSyncStatus(id: Long, status: String)
 
     @Delete
     suspend fun deleteReading(reading: ReadingEntity)

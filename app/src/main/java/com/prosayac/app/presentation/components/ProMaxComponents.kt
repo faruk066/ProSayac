@@ -96,15 +96,28 @@ fun KpiCard(
 }
 
 /**
- * SyncStatusBadge — Green/Orange indicator for sync state.
+ * SyncStatusBadge — Green/Orange/Red indicator for sync state.
+ * Reads the `sync_status` string from Room (PENDING / SYNCED / FAILED)
+ * and displays a reactive colored badge.
  */
 @Composable
 fun SyncStatusBadge(
-    isSynced: Boolean,
+    syncStatus: String,
     modifier: Modifier = Modifier
 ) {
-    val color = if (isSynced) SyncSynced else SyncPending
-    val text = if (isSynced) "Senkron" else "Bekliyor"
+    val isSynced = syncStatus.equals("SYNCED", ignoreCase = true)
+    val isFailed = syncStatus.equals("FAILED", ignoreCase = true)
+
+    val color = when {
+        isSynced -> SyncSynced
+        isFailed -> SyncError
+        else -> SyncPending  // "PENDING" or any unknown state
+    }
+    val text = when {
+        isSynced -> "Senkronize"
+        isFailed -> "Hata"
+        else -> "Bekliyor"
+    }
 
     Surface(
         modifier = modifier,

@@ -30,3 +30,5 @@ Thumbs.db
  
  # Supabase
 local.properties
+# CocoIndex Code (ccc)
+/.cocoindex_code/

@@ -19,7 +19,7 @@ data class AppPreferences(
     val baudRate: Int = 2400,
     val dataBits: Int = 8,
     val stopBits: Int = 1,
-    val parity: Int = 0
+    val parity: Int = 2 // PARITY_EVEN — M-Bus requires even parity per EN 13757-2
 )
 
 @Singleton
@@ -44,7 +44,7 @@ class UserPreferences @Inject constructor(
             baudRate = prefs[PreferenceKeys.BAUD_RATE] ?: 2400,
             dataBits = prefs[PreferenceKeys.DATA_BITS] ?: 8,
             stopBits = prefs[PreferenceKeys.STOP_BITS] ?: 1,
-            parity = prefs[PreferenceKeys.PARITY] ?: 0
+            parity = prefs[PreferenceKeys.PARITY] ?: 2  // PARITY_EVEN — M-Bus standard
         )
     }
 

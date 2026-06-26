@@ -2,10 +2,14 @@ package com.prosayac.app.data.local.entity
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import com.prosayac.app.domain.model.MeterStatus
 
-@Entity(tableName = "meters")
+@Entity(
+    tableName = "meters",
+    indices = [Index("status"), Index("meter_type")]
+)
 data class MeterEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
@@ -28,6 +32,9 @@ data class MeterEntity(
     @ColumnInfo(name = "building_name")
     val buildingName: String = "",
 
+    @ColumnInfo(name = "site_supabase_id")
+    val siteSupabaseId: String? = null,
+
     @ColumnInfo(name = "status")
     val status: MeterStatus = MeterStatus.UNREAD,
 
@@ -41,5 +48,5 @@ data class MeterEntity(
     val isSynced: Boolean = false,
 
     @ColumnInfo(name = "created_at")
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = 0L
 )
