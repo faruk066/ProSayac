@@ -109,9 +109,9 @@ android {
 	signingConfigs {
         create("release") {
             storeFile = file("sayac_pro_key.jks")
-            storePassword = "unkfrk66"
+            storePassword = localProperties["STORE_PASSWORD"] as? String ?: error("STORE_PASSWORD not found in local.properties")
             keyAlias = "sayac_pro_alias"
-            keyPassword = "unkfrk66"
+            keyPassword = localProperties["KEY_PASSWORD"] as? String ?: error("KEY_PASSWORD not found in local.properties")
         }
     }
 
@@ -170,8 +170,8 @@ dependencies {
     // AndroidX Startup (required by WorkManager initializer conflict resolution)
     implementation("androidx.startup:startup-runtime:1.1.1")
 
-    // Encrypted SharedPreferences for Supabase session persistence
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    // Tink encryption for Supabase session persistence (replaces deprecated security-crypto)
+    implementation("com.google.crypto.tink:tink-android:1.21.0")
 
     // Supabase Kotlin SDK (offline-first sync layer)
     val supabaseVersion = "3.0.0"

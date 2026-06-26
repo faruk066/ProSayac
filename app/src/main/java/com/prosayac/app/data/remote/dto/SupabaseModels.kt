@@ -20,7 +20,7 @@ data class MeterDto(
 
 @Serializable
 data class ReadingUploadDto(
-    val id: String? = null, // İŞTE BU EKSİKTİ! Bunu mutlaka geri ekle.
+    val id: String? = null,
     val meter_serial: String,
     val meter_type: String? = null,
     val reading_value: Double,

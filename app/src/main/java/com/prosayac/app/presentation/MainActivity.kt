@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.ListAlt
 import androidx.compose.material.icons.filled.Menu
@@ -214,6 +215,40 @@ fun ProSayacMainApp(
                 }
 
                 Spacer(modifier = Modifier.weight(1f))
+
+                // Logout button
+                NavigationDrawerItem(
+                    icon = {
+                        Icon(
+                            Icons.Default.PowerSettingsNew,
+                            contentDescription = "Çıkış Yap",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    label = {
+                        Text(
+                            "Çıkış Yap",
+                            fontFamily = FontFamily.Monospace,
+                            fontSize = 13.sp,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    selected = false,
+                    onClick = {
+                        scope.launch {
+                            authRepository.logout()
+                            navController.navigate(NavRoute.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                            drawerState.close()
+                        }
+                    },
+                    modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding),
+                    colors = NavigationDrawerItemDefaults.colors(
+                        unselectedTextColor = MaterialTheme.colorScheme.error,
+                        unselectedIconColor = MaterialTheme.colorScheme.error
+                    )
+                )
 
                 // Connection status in drawer footer
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 28.dp))

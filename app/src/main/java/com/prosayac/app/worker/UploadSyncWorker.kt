@@ -8,6 +8,7 @@ import androidx.work.WorkerParameters
 import com.prosayac.app.data.local.dao.MeterDao
 import com.prosayac.app.data.local.dao.ReadingDao
 import com.prosayac.app.data.remote.dto.ReadingUploadDto
+import com.prosayac.app.BuildConfig
 import com.prosayac.app.util.log.LogTag
 import com.prosayac.app.util.log.LoggerService
 import dagger.assisted.Assisted
@@ -30,7 +31,7 @@ class UploadSyncWorker @AssistedInject constructor(
 
         return try {
             val pendingReadings = readingDao.getPendingReadings()
-            Log.d("SYNC_DEBUG", "Bulunan bekleyen okuma sayisi: ${pendingReadings.size}")
+            if (BuildConfig.DEBUG) Log.d("SYNC_DEBUG", "Bulunan bekleyen okuma sayisi: ${pendingReadings.size}")
             if (pendingReadings.isEmpty()) return Result.success()
 
             val currentUser = supabaseClient.auth.currentUserOrNull()

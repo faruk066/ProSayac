@@ -27,8 +27,7 @@ Thumbs.db
 /*.png
 /*.jpg
 /*.jpeg
- 
- # Supabase
+# Supabase
 local.properties
 # CocoIndex Code (ccc)
 /.cocoindex_code/

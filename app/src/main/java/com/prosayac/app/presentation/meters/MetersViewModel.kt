@@ -56,7 +56,8 @@ data class MetersUiState(
     val isReadingInProgress: Boolean = false,
     val readingProgressMessage: String = "",
     val pendingFormatChoiceUri: Uri? = null,
-    val pendingFormatOptions: List<ExcelFormat> = emptyList()
+    val pendingFormatOptions: List<ExcelFormat> = emptyList(),
+    val pickedFormat: ExcelFormat? = null
 )
 
 data class ImportResultState(
@@ -134,9 +135,12 @@ class MetersViewModel @Inject constructor(
                 importProgress = "Excel dosyası işleniyor..."
             )
 
+            val format = _uiState.value.pickedFormat
+            _uiState.value = _uiState.value.copy(pickedFormat = null)
+
             try {
                 val result = withContext(Dispatchers.IO) {
-                    excelParser.parse(uri, buildingName)
+                    excelParser.parse(uri, buildingName, forceFormat = format)
                 }
 
                 if (result.ambiguousFormats.isNotEmpty()) {
@@ -195,7 +199,8 @@ class MetersViewModel @Inject constructor(
         val uri = _uiState.value.pendingFormatChoiceUri ?: return
         _uiState.value = _uiState.value.copy(
             pendingFormatChoiceUri = null,
-            pendingFormatOptions = emptyList()
+            pendingFormatOptions = emptyList(),
+            pickedFormat = format
         )
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(

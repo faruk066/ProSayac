@@ -1,0 +1,10 @@
+# Android SDK path (local machine)
+sdk.dir=C\:\\Users\\User\\AppData\\Local\\Android\\Sdk
+# Supabase project URL (replace with your own)
+SUPABASE_URL=https://your-project-id.supabase.co
+# Supabase publishable key (replace with your own - generate from Supabase Dashboard > Settings > API)
+SUPABASE_KEY=sb_publishable_your_key_here
+# Keystore password for release signing (replace with your own)
+STORE_PASSWORD=your_store_password_here
+# Key password for release signing (replace with your own)
+KEY_PASSWORD=your_key_password_here
